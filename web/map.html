@@ -880,10 +880,11 @@
         bottom: 0;
         width: 100%;
         max-width: 100%;
-        height: 56vh;
+        max-height: 70vh;           /* tall enough for full list */
+        height: auto;               /* shrinks to content, no blank space */
         border-radius: 24px 24px 0 0;
         transform: translateY(100%);
-        overflow: hidden;           /* keeps content within card bounds */
+        overflow: hidden;
       }
       #detail-card.open { transform: translateY(0); }
       #detail-content { max-width: 100%; }
@@ -1965,6 +1966,61 @@
       const d = S.data.get(zip);
       document.getElementById('slide-preview').innerHTML = buildSlideHTML(zip, d);
       document.getElementById('slide-export-modal').style.display = 'flex';
+
+      // Scale the preview to fit viewport width (important on mobile)
+      requestAnimationFrame(() => {
+        const preview  = document.getElementById('slide-preview');
+        const wrapper  = document.getElementById('slide-preview-wrap');
+        const maxW     = Math.min(window.innerWidth - 48, 960);
+        const scale    = maxW / 960;
+        if (scale < 1) {
+          preview.style.transform       = `scale(${scale})`;
+          preview.style.transformOrigin = 'top left';
+          wrapper.style.width           = maxW + 'px';
+          wrapper.style.height          = Math.round(540 * scale) + 'px';
+          wrapper.style.overflow        = 'hidden';
+          wrapper.style.flexShrink      = '0';
+        } else {
+          preview.style.transform = '';
+          wrapper.style.width = wrapper.style.height = '';
+        }
+        // Show Share button only if Web Share API supports files
+        const canShare = !!(navigator.share && navigator.canShare);
+        document.getElementById('share-btn').style.display = canShare ? 'inline-block' : 'none';
+      });
+    }
+
+    async function shareSlide() {
+      if (!slideZip) return;
+      const slideDiv = document.getElementById('slide-canvas');
+      if (!slideDiv) return;
+      const btn = document.getElementById('share-btn');
+      btn.textContent = 'Sharing…'; btn.disabled = true;
+      await document.fonts.ready;
+      try {
+        const canvas = await html2canvas(slideDiv, {
+          scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
+        });
+        canvas.toBlob(async blob => {
+          const file = new File([blob], `sas-${slideZip}.png`, { type: 'image/png' });
+          try {
+            await navigator.share({
+              title: `ZIP ${slideZip} — Stroke Access Score`,
+              text: `Stroke Access Score for ZIP ${slideZip}`,
+              files: [file]
+            });
+          } catch(e) {
+            if (e.name !== 'AbortError') {
+              // Fallback to download if share fails
+              const link = document.createElement('a');
+              link.download = `sas-${slideZip}.png`;
+              link.href = canvas.toDataURL('image/png');
+              link.click();
+            }
+          }
+        }, 'image/png');
+      } catch(e) { console.error('Share error:', e); }
+      btn.textContent = 'Share'; btn.disabled = false;
     }
 
     function closeSlideExport() {
@@ -2166,20 +2222,28 @@
   <!-- ── Slide export modal ── -->
   <div id="slide-export-modal"
        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
-              z-index:9200;align-items:flex-start;justify-content:center;
-              flex-direction:column;padding:32px 24px;overflow-y:auto;gap:20px">
+              z-index:9200;align-items:center;justify-content:center;
+              flex-direction:column;padding:20px 16px;overflow-y:auto;gap:16px">
 
-    <!-- Slide preview — 960×540, scrollable on small screens -->
-    <div style="overflow-x:auto;max-width:100%;align-self:center">
+    <!-- Slide preview — scales to viewport width on mobile via JS -->
+    <div id="slide-preview-wrap" style="align-self:center;flex-shrink:0">
       <div id="slide-preview"
            style="width:960px;height:540px;border-radius:6px;overflow:hidden;
-                  box-shadow:0 8px 48px rgba(0,0,0,.7);flex-shrink:0">
+                  box-shadow:0 8px 48px rgba(0,0,0,.7)">
         <!-- populated by buildSlideHTML() -->
       </div>
     </div>
 
-    <!-- Download + Close -->
-    <div style="display:flex;gap:12px;align-self:center;flex-shrink:0">
+    <!-- Action buttons -->
+    <div style="display:flex;gap:12px;align-self:center;flex-shrink:0;flex-wrap:wrap;justify-content:center">
+      <!-- Share (mobile, shown only when Web Share API available) -->
+      <button id="share-btn" onclick="shareSlide()" style="display:none;
+              padding:11px 32px;background:#0f0f3c;color:#fff;border:none;
+              border-radius:999px;font-family:'Roboto',sans-serif;font-size:.9rem;
+              font-weight:500;cursor:pointer">
+        Share
+      </button>
+      <!-- Download PNG (always available) -->
       <button id="dl-btn" onclick="downloadSlide()"
               style="padding:11px 32px;background:#e10087;color:#fff;border:none;
                      border-radius:999px;font-family:'Roboto',sans-serif;font-size:.9rem;
