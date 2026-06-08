@@ -270,19 +270,6 @@
     .zoom-divider { height: 1px; background: var(--divider); margin: 0 6px; }
 
     /* ── Region toggle ── */
-    #region-toggle {
-      position: absolute;
-      bottom: 28px;
-      left: 16px;
-      z-index: 800;
-      display: flex;
-      background: #fff;
-      border-radius: var(--r-btn);
-      box-shadow: 0 2px 12px rgba(0,0,0,.15);
-      padding: 4px;
-      gap: 2px;
-    }
-    #region-toggle.hidden { display: none; }
 
     /* ── Compact Legend ── */
     #map-legend {
@@ -381,6 +368,8 @@
     .dc-header-text { flex: 1; min-width: 0; }
     /* Remove old standalone close row */
     .dc-close-row { display: none; }
+    /* Card close button: only shown in Disparity view (Community has the search bar × instead) */
+    body.view-community #detail-card .dc-close { display: none; }
     .dc-close {
       background: none;
       border: 1px solid var(--divider);
@@ -510,6 +499,8 @@
       font-size: .78rem;
       margin-bottom: 3px;
     }
+    .dbar-head span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dbar-head span:last-child  { flex-shrink: 0; margin-left: 8px; }
     .dbar-head span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dbar-head span:last-child  { flex-shrink: 0; margin-left: 8px; }
     .dbar-track { height: 5px; background: var(--bg); border-radius: var(--r-btn); }
@@ -960,9 +951,9 @@
         margin: 10px auto 6px;
       }
       #search-wrap { width: calc(100% - 32px); left: 16px; transform: none; }
-      #region-toggle { bottom: 16px; left: 8px; }
       #map-legend { bottom: 16px; right: 8px; }
       #zoom-controls { bottom: 70px; right: 8px; transition: opacity .2s; }
+      body:has(#detail-card.open) #zoom-controls { opacity: 0; pointer-events: none; }
       /* Hide zoom buttons while mobile drawer is open — they'd float over the card */
       body:has(#detail-card.open) #zoom-controls { opacity: 0; pointer-events: none; }
       .findings-grid { grid-template-columns: 1fr; }
@@ -1079,12 +1070,6 @@
         <button type="button" class="zoom-btn" onclick="S.map.zoomIn()">+</button>
         <div class="zoom-divider"></div>
         <button type="button" class="zoom-btn" onclick="S.map.zoomOut()">−</button>
-      </div>
-
-      <!-- Region toggle (disparity only) -->
-      <div id="region-toggle" class="hidden">
-        <button type="button" class="seg-btn active" id="btn-la" onclick="setRegion('la',this)">Los Angeles</button>
-        <button type="button" class="seg-btn" id="btn-ca" onclick="setRegion('ca',this)">All California</button>
       </div>
 
       <!-- Compact legend (disparity only) — populated by updateLegend() -->
@@ -1616,7 +1601,10 @@
             <span class="dc-area-name" id="dc-area-name">ZIP ${zip}</span>
             <span class="dc-zip-sub">ZIP code ${zip}</span>
           </div>
-          <button type="button" class="dc-export-btn" onclick="openSlideExport('${zip}')">Export</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <button type="button" class="dc-export-btn" onclick="openSlideExport('${zip}')">Export</button>
+            <button type="button" class="dc-close" onclick="returnToViewport()" aria-label="Close" title="Close">×</button>
+          </div>
         </div>
         <span class="dc-score" style="color:${color}">${score !== null ? score.toFixed(0) : '—'}</span>
         <span class="dc-label" style="color:${color}">${label}</span>
@@ -1785,7 +1773,6 @@
       // Show/hide floating elements
       document.getElementById('search-wrap').style.display = onCommunity ? 'flex' : 'none';
       document.getElementById('disparity-layers').classList.toggle('hidden', onCommunity);
-      document.getElementById('region-toggle').classList.toggle('hidden', onCommunity);
       document.getElementById('map-legend').classList.toggle('hidden', onCommunity);
 
       // Close any open detail card
@@ -1813,13 +1800,7 @@
       gtag('event', 'view_changed', { view_name: onCommunity ? 'My Community' : 'The Disparity' });
     }
 
-    // ─ Region toggle ─
-    function setRegion(region, btn) {
-      document.querySelectorAll('#region-toggle .seg-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (region === 'la') goLA();
-      else goCA();
-    }
+
 
     function goLA() { S.map?.setView([34.05, -118.25], 9); }
     function goCA() { if (S.caBounds) S.map?.fitBounds(S.caBounds, { padding: [24, 24] }); }
