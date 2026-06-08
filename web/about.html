@@ -14,6 +14,8 @@
 <title>About — Stroke Access Score</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --navy:    #0f0f3c;
@@ -446,7 +448,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
 
 <!-- Download PDF -->
 <div class="download-pdf-wrap">
-  <button class="download-pdf-btn" onclick="window.print()">
+  <button class="download-pdf-btn" id="pdf-btn" onclick="downloadMethodologyPDF()">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
       <path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -483,6 +485,181 @@ document.addEventListener('click',e=>{
   const btn=document.getElementById('hamburger');
   if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&!btn.contains(e.target))closeNav();
 });
+
+// ── Methodology PDF — same 960×540 slide format as map PNG export ──────────────
+const AUTHORS = 'James Beavis BSN BA & Mike Morales';
+const SITE    = 'stroke-access-score.vercel.app';
+// TODO: replace with a real contact email when available
+const CONTACT = SITE;
+
+function slideShell(leftHTML, rightHTML) {
+  return `<div style="width:960px;height:540px;display:flex;flex-direction:column;
+    background:#fff;overflow:hidden;font-family:'Roboto',sans-serif">
+    <div style="flex:1;display:flex;overflow:hidden">
+      <div style="width:576px;padding:32px 36px 24px;display:flex;flex-direction:column;
+        box-sizing:border-box;overflow:hidden">${leftHTML}</div>
+      <div style="width:384px;background:#0f0f3c;padding:28px 28px 24px;
+        display:flex;flex-direction:column;box-sizing:border-box;
+        border-radius:20px 0 0 0;overflow:hidden">${rightHTML}</div>
+    </div>
+    <div style="background:#0f0f3c;padding:7px 32px;display:flex;
+      justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="color:rgba(255,255,255,.7);font-size:9px;font-family:'Roboto',sans-serif">${SITE}</span>
+      <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">${AUTHORS}</span>
+      <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Research prototype. Not for clinical use.</span>
+    </div>
+  </div>`;
+}
+function pinkLabel(t){return `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#e10087;margin-bottom:12px;font-family:'Roboto',sans-serif">${t}</div>`;}
+function navyLabel(t){return `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#f9a8d4;margin-bottom:12px;font-family:'Roboto',sans-serif">${t}</div>`;}
+function body(t){return `<div style="font-size:12px;color:#444;line-height:1.6;font-family:'Roboto',sans-serif">${t}</div>`;}
+function navyBody(t){return `<div style="font-size:11px;color:rgba(255,255,255,.75);line-height:1.6;font-family:'Roboto',sans-serif">${t}</div>`;}
+function heading(t){return `<div style="font-family:'Roboto Slab',serif;font-size:28px;font-weight:700;color:#0f0f3c;line-height:1.15;margin-bottom:14px">${t}</div>`;}
+
+function slide1(){
+  const left = pinkLabel('STROKE ACCESS SCORE — METHODOLOGY') +
+    heading('A Geography of Stroke Care Inequality') +
+    body('The Stroke Access Score (SAS) measures every California ZIP code on its proximity to certified stroke care. Results reveal a stark geography of unequal access shaped by race, income, and distance.') +
+    `<div style="margin-top:16px;padding:14px 16px;border-left:4px solid #e10087;background:rgba(225,0,135,.05);font-style:italic;font-size:12px;color:#0f0f3c;font-family:'Roboto',sans-serif;line-height:1.6">
+      Urban proximity bias in hospital siting means rural, low-income, and minority communities are systematically farther from certified stroke centers — compounding clinical risk already concentrated in those areas.
+    </div>`;
+  const right = navyLabel('COVERAGE') +
+    navyBody('<b style="color:#fff">1,802</b> California ZIP codes analyzed<br><b style="color:#fff">338</b> certified stroke facilities<br><b style="color:#fff">8,986</b> drive-time pairs computed') +
+    `<div style="margin-top:20px">${navyLabel('TIME TO TREATMENT MATTERS')}` +
+    navyBody('Every 15-minute delay in receiving tPA reduces odds of a good outcome by ~20%. The "Golden Hour" — treatment within 60 minutes — is the single most critical determinant of stroke survival without disability.</div>');
+  return slideShell(left, right);
+}
+
+function slide2(){
+  const tiers = [
+    ['CSC','Comprehensive Stroke Center','100','#c0392b'],
+    ['TSC','Thrombectomy-capable','75','#7c3aed'],
+    ['PSC','Primary Stroke Center','50','#1d6fa4'],
+    ['ASRH','Acute Stroke Ready Hospital','25','#6b7280'],
+  ];
+  const left = pinkLabel('HOW THE SCORE WORKS') +
+    body("Each hospital is assigned a tier based on CMS quality ratings as a proxy for stroke certification. Each ZIP's score is the <b>highest adjusted score</b> across all hospitals in the drive-time cache.") +
+    `<div style="margin-top:16px;border:1px solid #e0e0ec;overflow:hidden">
+      <div style="display:flex;background:#0f0f3c;padding:7px 12px">
+        <span style="flex:0 0 50px;font-size:9px;font-weight:700;color:#f9a8d4;text-transform:uppercase">Level</span>
+        <span style="flex:1;font-size:9px;font-weight:700;color:#f9a8d4;text-transform:uppercase">Description</span>
+        <span style="flex:0 0 40px;font-size:9px;font-weight:700;color:#f9a8d4;text-transform:uppercase;text-align:right">Base</span>
+        <span style="flex:0 0 55px;font-size:9px;font-weight:700;color:#f9a8d4;text-transform:uppercase;text-align:right">&gt;30 min</span>
+        <span style="flex:0 0 55px;font-size:9px;font-weight:700;color:#f9a8d4;text-transform:uppercase;text-align:right">&gt;60 min</span>
+      </div>
+      ${tiers.map(([abbr,desc,base,col],i)=>`<div style="display:flex;align-items:center;padding:8px 12px;background:${i%2?'#f9f9fb':'#fff'}">
+        <span style="flex:0 0 50px"><span style="padding:2px 8px;background:${col};color:#fff;font-size:9px;font-weight:700;border-radius:999px">${abbr}</span></span>
+        <span style="flex:1;font-size:11px;color:#333;font-family:'Roboto',sans-serif">${desc}</span>
+        <span style="flex:0 0 40px;font-size:11px;font-weight:700;color:#333;text-align:right;font-family:'Roboto',sans-serif">${base}</span>
+        <span style="flex:0 0 55px;font-size:11px;color:#e67e22;text-align:right;font-family:'Roboto',sans-serif">−${base==='100'?30:base==='25'?20:15}</span>
+        <span style="flex:0 0 55px;font-size:11px;color:#c0392b;text-align:right;font-family:'Roboto',sans-serif">−15</span>
+      </div>`).join('')}
+    </div>`;
+  const scaleColors = [['0–39','Limited','#c0392b'],['40–59','Moderate','#e67e22'],['60–69','Med-high','#f1c40f'],['70–100','Strong','#27ae60']];
+  const right = navyLabel('SCORE TIERS') +
+    `<div style="display:flex;gap:2px;margin-bottom:20px">${scaleColors.map(([range,lbl,col])=>`<div style="flex:1;background:${col};padding:8px 6px;text-align:center"><div style="font-size:9px;font-weight:700;color:#fff;font-family:'Roboto',sans-serif">${range}</div><div style="font-size:8px;color:rgba(255,255,255,.8);font-family:'Roboto',sans-serif">${lbl}</div></div>`).join('')}</div>` +
+    navyLabel('EXAMPLE') +
+    navyBody('A ZIP 70 min from its nearest CSC:<br><b style="color:#fff">100 − 30 − 15 = 55</b> (Moderate Access)<br><br>A ZIP 25 min from a PSC:<br><b style="color:#fff">50 − 0 = 50</b> (Moderate Access)');
+  return slideShell(left, right);
+}
+
+function slide3(){
+  const flags = [
+    ['SEV','Socioeconomic Vulnerability','Score < 40 + majority-minority community + poverty > 20% or uninsured > 15%','#e10087'],
+    ['CRF','Clinical Risk Factor','Score < 40 + median age > 40 years in the ZIP code','#e67e22'],
+    ['Double Jeopardy','Both SEV and CRF flags active — highest priority ZIPs','Both SEV and CRF conditions met simultaneously','#8b0000'],
+  ];
+  const left = pinkLabel('VULNERABILITY FLAGS') +
+    body('Three flags identify ZIP codes where poor access intersects with community-level risk factors, enabling targeted advocacy and policy intervention.') +
+    flags.map(([abbr,title,desc,col])=>`<div style="margin-top:12px;padding:10px 12px;border-left:4px solid ${col};background:rgba(0,0,0,.02)">
+      <div style="font-size:11px;font-weight:700;color:#0f0f3c;margin-bottom:3px;font-family:'Roboto',sans-serif"><span style="padding:1px 8px;background:${col};color:#fff;font-size:9px;border-radius:999px;margin-right:6px">${abbr}</span>${title}</div>
+      <div style="font-size:10px;color:#555;font-family:'Roboto',sans-serif">${desc}</div>
+    </div>`).join('');
+  const sources = [
+    ['CMS Hospital Compare','Hospital types, quality ratings (1–5 stars)'],
+    ['Census ACS 2022','Demographics, income, poverty by ZIP'],
+    ['Census TIGER/Line','ZIP boundary geometries'],
+    ['Census 2020 Blocks','Population-weighted centroids'],
+    ['Drive-time cache','8,986 origin-destination pairs'],
+  ];
+  const right = navyLabel('DATA SOURCES') +
+    sources.map(([name,desc])=>`<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start">
+      <div style="width:6px;height:6px;background:#f9a8d4;flex-shrink:0;margin-top:5px"></div>
+      <div><div style="font-size:11px;font-weight:600;color:#fff;font-family:'Roboto',sans-serif">${name}</div>
+      <div style="font-size:9px;color:rgba(255,255,255,.6);font-family:'Roboto',sans-serif">${desc}</div></div>
+    </div>`).join('');
+  return slideShell(left, right);
+}
+
+function slide4(){
+  const limits = [
+    'CMS ratings used as <b>proxy</b> for stroke certification — EMNet data pending',
+    'Drive times are point-to-centroid estimates, not actual EMS routing',
+    'ZCTA-level analysis obscures within-ZIP variation',
+    'Static snapshot: hospital changes not reflected in real time',
+    'Hospital capacity constraints not modeled',
+    '<b>Not for clinical or emergency use</b> — research and policy only',
+  ];
+  const left = pinkLabel('LIMITATIONS') +
+    limits.map(l=>`<div style="display:flex;gap:10px;margin-bottom:9px">
+      <div style="width:5px;height:5px;background:#e10087;flex-shrink:0;margin-top:6px"></div>
+      <div style="font-size:11px;color:#444;line-height:1.5;font-family:'Roboto',sans-serif">${l}</div>
+    </div>`).join('');
+  const right = navyLabel('RESEARCH TEAM') +
+    `<div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="width:40px;height:40px;background:#1a1a5c;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:4px">
+        <span style="color:#fff;font-family:'Roboto Slab',serif;font-size:13px;font-weight:700">JB</span>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fff;font-family:'Roboto Slab',serif">James Beavis BSN BA</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);font-family:'Roboto',sans-serif">Registered Nurse · Clinical hypothesis &amp; stroke care expertise</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:24px">
+      <div style="width:40px;height:40px;background:#1a1a5c;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:4px">
+        <span style="color:#fff;font-family:'Roboto Slab',serif;font-size:13px;font-weight:700">MM</span>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fff;font-family:'Roboto Slab',serif">Mike Morales</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);font-family:'Roboto',sans-serif">Data pipeline · Geographic analysis · Visualization</div>
+      </div>
+    </div>` +
+    navyLabel('CONTACT') +
+    navyBody(`<a href="https://${SITE}" style="color:#f9a8d4;text-decoration:none">${SITE}</a>`);
+  return slideShell(left, right);
+}
+
+async function downloadMethodologyPDF() {
+  const btn = document.getElementById('pdf-btn');
+  btn.querySelector('span') && (btn.querySelector('span').textContent = 'Generating…');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  await document.fonts.ready;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [960, 540] });
+  const slides = [slide1(), slide2(), slide3(), slide4()];
+
+  // Render each slide off-screen, capture with html2canvas, add to PDF
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;z-index:-1';
+  document.body.appendChild(container);
+
+  for (let i = 0; i < slides.length; i++) {
+    container.innerHTML = slides[i];
+    const canvas = await html2canvas(container.firstChild, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
+    });
+    const imgData = canvas.toDataURL('image/png');
+    if (i > 0) pdf.addPage([960, 540], 'landscape');
+    pdf.addImage(imgData, 'PNG', 0, 0, 960, 540);
+  }
+
+  document.body.removeChild(container);
+  pdf.save('sas-methodology.pdf');
+  btn.textContent = 'Download PDF';
+  btn.disabled = false;
+}
 </script>
 </body>
 </html>

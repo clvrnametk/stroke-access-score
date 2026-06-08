@@ -510,6 +510,8 @@
       font-size: .78rem;
       margin-bottom: 3px;
     }
+    .dbar-head span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dbar-head span:last-child  { flex-shrink: 0; margin-left: 8px; }
     .dbar-track { height: 5px; background: var(--bg); border-radius: var(--r-btn); }
     .dbar-fill { height: 100%; border-radius: var(--r-btn); }
     .dbar-pink .dbar-fill { background: var(--pink); }
@@ -830,11 +832,44 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 20px;
     }
+    /* ── Disparity sub-layer pills ── */
+    #disparity-layers {
+      position: absolute;
+      top: 80px;       /* same vertical slot as search bar in community view */
+      left: 16px;
+      z-index: 800;
+      width: min(380px, calc(100% - 32px));
+    }
+    #disparity-layers.hidden { display: none; }
+    .dlayer-pills {
+      display: flex; gap: 4px;
+      background: rgba(255,255,255,.95);
+      border-radius: var(--r-btn);
+      padding: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    }
+    .dlayer-btn {
+      flex: 1; border: none; background: transparent; color: var(--navy);
+      border-radius: var(--r-btn); padding: 8px 0; text-align: center;
+      font-family: 'Roboto', sans-serif; font-size: .82rem; font-weight: 500;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .dlayer-btn.active { background: var(--navy); color: #fff; }
+    .dlayer-btn:not(.active):hover { background: rgba(15,15,60,.07); }
+
     .finding-card {
       background: #fff;
       border-radius: 20px;
       padding: 24px;
       box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      transition: opacity .25s, box-shadow .25s, transform .25s;
+    }
+    /* Findings react to active disparity layer */
+    .finding-card.layer-dim   { opacity: .35; }
+    .finding-card.layer-active {
+      box-shadow: 0 4px 20px rgba(225,0,135,.2);
+      transform: translateY(-2px);
+      border-top: 3px solid var(--pink);
     }
     .fc-label {
       font-size: 10px;
@@ -927,7 +962,9 @@
       #search-wrap { width: calc(100% - 32px); left: 16px; transform: none; }
       #region-toggle { bottom: 16px; left: 8px; }
       #map-legend { bottom: 16px; right: 8px; }
-      #zoom-controls { bottom: 70px; right: 8px; }
+      #zoom-controls { bottom: 70px; right: 8px; transition: opacity .2s; }
+      /* Hide zoom buttons while mobile drawer is open — they'd float over the card */
+      body:has(#detail-card.open) #zoom-controls { opacity: 0; pointer-events: none; }
       .findings-grid { grid-template-columns: 1fr; }
       #view-switcher { padding: 6px 12px; }
       .seg-btn { padding: 7px 14px; font-size: .82rem; }
@@ -1017,6 +1054,15 @@
         </div>
       </div>
 
+      <!-- Disparity sub-layer pills (disparity view only, occupies same slot as search bar) -->
+      <div id="disparity-layers" class="hidden">
+        <div class="dlayer-pills">
+          <button type="button" class="dlayer-btn active" data-layer="flags"  onclick="setDisparityLayer('flags',this)">Score &amp; Flags</button>
+          <button type="button" class="dlayer-btn"        data-layer="race"   onclick="setDisparityLayer('race',this)">Race &amp; Access</button>
+          <button type="button" class="dlayer-btn"        data-layer="income" onclick="setDisparityLayer('income',this)">Income &amp; Access</button>
+        </div>
+      </div>
+
       <!-- Search bar (community only) -->
       <div id="search-wrap">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0;color:#999">
@@ -1041,14 +1087,8 @@
         <button type="button" class="seg-btn" id="btn-ca" onclick="setRegion('ca',this)">All California</button>
       </div>
 
-      <!-- Compact legend (disparity only) -->
-      <div id="map-legend" class="hidden">
-        <div class="legend-title">Score</div>
-        <div class="legend-item"><span class="leg-dot" style="background:#27ae60"></span>Strong (70–100)</div>
-        <div class="legend-item"><span class="leg-dot" style="background:#f1c40f"></span>Moderate (40–69)</div>
-        <div class="legend-item"><span class="leg-dot" style="background:#c0392b"></span>Limited (0–39)</div>
-        <div class="legend-item"><span class="leg-dot" style="background:#cccccc"></span>No data</div>
-      </div>
+      <!-- Compact legend (disparity only) — populated by updateLegend() -->
+      <div id="map-legend" class="hidden"></div>
 
       <!-- Hover tooltip -->
       <div id="tip"></div>
@@ -1066,17 +1106,17 @@
         <span class="findings-eyebrow">Key Findings</span>
         <h2 class="findings-headline">The geography of stroke care inequality in California</h2>
         <div class="findings-grid">
-          <div class="finding-card">
+          <div class="finding-card" data-finding-type="income">
             <span class="fc-label">Income &amp; Access</span>
             <span class="fc-stat" id="f-income-gap">—</span>
             <p class="fc-text">Average score difference between top and bottom income quartile ZIP codes. Wealthier areas have consistently better proximity to certified stroke centers.</p>
           </div>
-          <div class="finding-card">
+          <div class="finding-card" data-finding-type="race">
             <span class="fc-label">Racial Disparity</span>
             <span class="fc-stat" id="f-racial-gap">—</span>
             <p class="fc-text">Average score gap between non-majority-minority and majority-minority ZIP codes. Communities of color face lower access to stroke care.</p>
           </div>
-          <div class="finding-card">
+          <div class="finding-card" data-finding-type="flags">
             <span class="fc-label">Population at Risk</span>
             <span class="fc-stat" id="f-risk-pop">—</span>
             <p class="fc-text" id="f-risk-detail">Facing both poor access scores and elevated stroke risk factors including age and concentrated poverty.</p>
@@ -1113,6 +1153,7 @@
       filter: 'all',
       selectedZip: null,
       currentPageView: 'community',
+      disparityLayer: 'flags',   // 'flags' | 'race' | 'income'
       data: new Map(),
       geoLayer: null,
       hospitalLayer: null,
@@ -1254,11 +1295,28 @@
 
     function featureColor(d) {
       if (!d) return '#cccccc';
-      switch (S.view) {
-        case 'sas': return sasColor(d.sas_score);
-        case 'minority': return d.is_majority_minority === 1 ? '#0f0f3c' : '#e8e8f0';
-        case 'income': return incomeColor(d.median_hh_income);
-        case 'flags': return flagColor(d);
+
+      // My Community: always plain SAS choropleth
+      if (S.currentPageView === 'community') return sasColor(d.sas_score);
+
+      // The Disparity: three purposeful data lenses
+      switch (S.disparityLayer) {
+        case 'flags':
+          // SAS choropleth base, but vulnerability flags override with strong colors
+          if (d.double_jeopardy_flag === 1)              return '#8b0000'; // dark red — worst
+          if (d.socioeconomic_vulnerability_flag === 1)  return '#e10087'; // pink
+          if (d.clinical_risk_flag === 1)                return '#e67e22'; // orange
+          return sasColor(d.sas_score);                                    // standard tier color
+
+        case 'race':
+          // MM + limited access = loudest signal for advocacy
+          if (d.is_majority_minority === 1 && d.sas_score !== null && d.sas_score < 40)
+            return '#c0392b';                            // MM AND low access
+          if (d.is_majority_minority === 1) return '#0f0f3c';  // MM, adequate access
+          return '#dce0f0';                              // non-MM (quiet)
+
+        case 'income':
+          return incomeColor(d.median_hh_income);        // existing quartile scale
       }
       return '#cccccc';
     }
@@ -1401,22 +1459,32 @@
     function showTip(e, html) {
       const t = document.getElementById('tip');
       t.innerHTML = html;
+
+      // Position off-screen first so offsetWidth/Height are calculated correctly
+      // before the tooltip has been visually placed (avoids 0-value reads)
+      t.style.left    = '-9999px';
+      t.style.top     = '-9999px';
       t.style.display = 'block';
+      void t.offsetWidth;   // force reflow so dimensions are real
 
-      const cp      = e.containerPoint;
-      const mapEl   = document.getElementById('map');
-      const mapRect = mapEl.getBoundingClientRect();
-      const tW      = t.offsetWidth  || 200;
-      const tH      = t.offsetHeight || 60;
-      const margin  = 8;
+      const tW     = t.offsetWidth  || 220;
+      const tH     = t.offsetHeight || 70;
+      const cp     = e.containerPoint;
+      // Use Leaflet's cached map size — always accurate, even in fixed layouts
+      const mapSz  = S.map.getSize();
+      const areaW  = mapSz.x;
+      const areaH  = mapSz.y;
+      const margin = 10;
 
-      // Default: right + below cursor
-      let x = cp.x + 14;
-      let y = cp.y - 12;
+      // Default: place to the right of and slightly above the cursor
+      let x = cp.x + 16;
+      let y = cp.y - 14;
 
-      // Clamp so tooltip never exits the map container
-      if (x + tW + margin > mapRect.width)  x = cp.x - tW - 10;   // flip left
-      if (y + tH + margin > mapRect.height) y = cp.y - tH - 10;   // flip above
+      // Flip to the left if tooltip would overflow the right edge
+      if (x + tW + margin > areaW) x = cp.x - tW - 12;
+      // Flip above if tooltip would overflow the bottom edge
+      if (y + tH + margin > areaH) y = cp.y - tH - 10;
+      // Keep within top/left edges
       if (x < margin) x = margin;
       if (y < margin) y = margin;
 
@@ -1637,6 +1705,70 @@
     }
 
     // ─ View switching ─
+    // ── Legend definitions for each disparity layer ──
+    const DISPARITY_LEGENDS = {
+      flags: {
+        title: 'Score &amp; Vulnerability Flags',
+        items: [
+          ['#8b0000', 'Double Jeopardy (SEV + CRF)'],
+          ['#e10087', 'SEV — Socioeconomic Vulnerability'],
+          ['#e67e22', 'CRF — Clinical Risk Factor'],
+          ['#27ae60', 'Strong Access (70+)'],
+          ['#e67e22', 'Moderate Access (40–69)'],
+          ['#c0392b', 'Limited Access (0–39)'],
+        ]
+      },
+      race: {
+        title: 'Race &amp; Access',
+        items: [
+          ['#c0392b', 'Majority-minority + Limited Access'],
+          ['#0f0f3c', 'Majority-minority ZIP'],
+          ['#dce0f0', 'Non-majority-minority'],
+        ]
+      },
+      income: {
+        title: 'Median Household Income',
+        items: [
+          ['#0f0f3c', 'Top quartile (highest income)'],
+          ['#3d4f9f', 'Upper-mid quartile'],
+          ['#8892c4', 'Lower-mid quartile'],
+          ['#d0d4e8', 'Bottom quartile (lowest income)'],
+        ]
+      }
+    };
+
+    function updateLegend() {
+      const el = document.getElementById('map-legend');
+      if (!el) return;
+      const layer = S.currentPageView === 'disparity' ? S.disparityLayer : null;
+      if (!layer) { el.innerHTML = ''; return; }
+      const def = DISPARITY_LEGENDS[layer];
+      el.innerHTML = `
+        <div class="legend-title">${def.title}</div>
+        ${def.items.map(([col, lbl]) =>
+          `<div class="legend-item"><span class="leg-dot" style="background:${col}"></span>${lbl}</div>`
+        ).join('')}`;
+    }
+
+    function setDisparityLayer(layer, btn) {
+      S.disparityLayer = layer;
+      document.querySelectorAll('.dlayer-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.layer === layer)
+      );
+      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+      updateLegend();
+      updateFindingsHighlight(layer);
+      gtag('event', 'view_changed', { view_name: 'Disparity — ' + layer });
+    }
+
+    function updateFindingsHighlight(layer) {
+      document.querySelectorAll('.finding-card').forEach(card => {
+        const match = card.dataset.findingType === layer;
+        card.classList.toggle('layer-active', match);
+        card.classList.toggle('layer-dim',    !match);
+      });
+    }
+
     function switchView(view) {
       S.currentPageView = view;
 
@@ -1648,9 +1780,11 @@
       // Toggle body class for layout
       document.body.className = 'view-' + view;
 
-      // Show/hide floating elements
       const onCommunity = view === 'community';
+
+      // Show/hide floating elements
       document.getElementById('search-wrap').style.display = onCommunity ? 'flex' : 'none';
+      document.getElementById('disparity-layers').classList.toggle('hidden', onCommunity);
       document.getElementById('region-toggle').classList.toggle('hidden', onCommunity);
       document.getElementById('map-legend').classList.toggle('hidden', onCommunity);
 
@@ -1658,18 +1792,25 @@
       closeDetailCard();
       removeHighlight();
 
-      // Reset map view
+      // Re-colour map and update legend
       if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+      updateLegend();
+
       if (view === 'disparity') {
+        // Default to flags layer when entering disparity view
+        setDisparityLayer('flags', document.querySelector('.dlayer-btn[data-layer="flags"]'));
         setTimeout(() => goCA(), 50);
       } else {
+        // Reset finding cards highlight when leaving disparity
+        document.querySelectorAll('.finding-card').forEach(c => {
+          c.classList.remove('layer-active', 'layer-dim');
+        });
         if (S.map) S.map.setView([34.05, -118.25], 9);
       }
 
       if (S.map) S.map.invalidateSize();
 
-      // GA
-      gtag('event', 'view_changed', { view_name: view === 'community' ? 'My Community' : 'The Disparity' });
+      gtag('event', 'view_changed', { view_name: onCommunity ? 'My Community' : 'The Disparity' });
     }
 
     // ─ Region toggle ─
@@ -1981,112 +2122,110 @@
       ASRH: 'Acute Stroke Ready Hospital',
     };
 
-    let slideZip = null;
+    let slideZip  = null;
+    let slideBlob = null;   // pre-generated blob so share/download need no async work at tap time
 
     function openSlideExport(zip) {
-      slideZip = zip;
+      slideZip  = zip;
+      slideBlob = null;
       const d = S.data.get(zip);
       document.getElementById('slide-preview').innerHTML = buildSlideHTML(zip, d);
       document.getElementById('slide-export-modal').style.display = 'flex';
 
-      // Scale the preview to fit viewport width (important on mobile)
-      requestAnimationFrame(() => {
-        const preview  = document.getElementById('slide-preview');
-        const wrapper  = document.getElementById('slide-preview-wrap');
-        const maxW     = Math.min(window.innerWidth - 48, 960);
-        const scale    = maxW / 960;
+      // Disable action buttons while generating
+      const dlBtn  = document.getElementById('dl-btn');
+      const shBtn  = document.getElementById('share-btn');
+      dlBtn.textContent = 'Preparing…'; dlBtn.disabled = true;
+      shBtn.style.display = 'none';
+
+      requestAnimationFrame(async () => {
+        // Scale preview to fit viewport
+        const preview = document.getElementById('slide-preview');
+        const wrapper = document.getElementById('slide-preview-wrap');
+        const maxW    = Math.min(window.innerWidth - 48, 960);
+        const scale   = maxW / 960;
         if (scale < 1) {
           preview.style.transform       = `scale(${scale})`;
           preview.style.transformOrigin = 'top left';
-          wrapper.style.width           = maxW + 'px';
-          wrapper.style.height          = Math.round(540 * scale) + 'px';
-          wrapper.style.overflow        = 'hidden';
-          wrapper.style.flexShrink      = '0';
+          wrapper.style.width    = maxW + 'px';
+          wrapper.style.height   = Math.round(540 * scale) + 'px';
+          wrapper.style.overflow = 'hidden';
         } else {
           preview.style.transform = '';
           wrapper.style.width = wrapper.style.height = '';
         }
-        // Show Share button whenever Web Share API exists (file or URL sharing)
-        document.getElementById('share-btn').style.display =
-          typeof navigator.share === 'function' ? 'inline-block' : 'none';
+
+        // Pre-generate the PNG blob so Share/Download tap requires NO async work.
+        // iOS drops the user-activation context for navigator.share if any await
+        // happens between the tap and the share() call.
+        try {
+          await document.fonts.ready;
+          const slideDiv = document.getElementById('slide-canvas');
+          const canvas   = await html2canvas(slideDiv, {
+            scale: 2, useCORS: true, backgroundColor: '#ffffff',
+            width: 960, height: 540, logging: false
+          });
+          slideBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        } catch(e) {
+          console.error('Slide pre-generation failed:', e);
+        }
+
+        // Re-enable buttons now that blob is ready
+        dlBtn.textContent = 'Download PNG'; dlBtn.disabled = false;
+        if (slideBlob && typeof navigator.share === 'function') {
+          shBtn.style.display = 'inline-block';
+        }
       });
     }
 
+    // ── Share: called directly from button tap — NO awaits before navigator.share ──
     async function shareSlide() {
-      if (!slideZip) return;
-      const slideDiv = document.getElementById('slide-canvas');
-      if (!slideDiv) return;
-      const btn = document.getElementById('share-btn');
-      btn.textContent = 'Sharing…'; btn.disabled = true;
-      await document.fonts.ready;
+      if (!slideBlob || !slideZip) return;
+      // Create File here (synchronous) immediately before share call
+      const file = new File([slideBlob], `sas-${slideZip}.png`, { type: 'image/png' });
       try {
-        const canvas = await html2canvas(slideDiv, {
-          scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
+        // navigator.share is called with minimal async gap from the user tap
+        await navigator.share({
+          title: `ZIP ${slideZip} — Stroke Access Score`,
+          files: [file]
         });
-
-        // Convert toBlob via Promise so we stay inside the async chain.
-        // Using a callback breaks the user-activation context on iOS Chrome/Safari,
-        // which causes navigator.share to be rejected as "not called from user gesture".
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        const file = new File([blob], `sas-${slideZip}.png`, { type: 'image/png' });
-
-        const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
-
-        try {
-          if (canShareFiles) {
-            // iOS Safari, modern Chrome for Android — full image share sheet
-            await navigator.share({ title: `ZIP ${slideZip} — Stroke Access Score`, files: [file] });
-          } else if (navigator.share) {
-            // Browsers with share API but no file support — share URL + also download image
-            await navigator.share({
-              title: `ZIP ${slideZip} — Stroke Access Score`,
-              text: `Stroke Access Score for ZIP ${slideZip}`,
-              url: window.location.href
-            });
-            const link = document.createElement('a');
-            link.download = `sas-${slideZip}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-          } else {
-            throw new Error('share-not-supported');
-          }
-        } catch(e) {
-          if (e.name !== 'AbortError') {
-            // Fall back to plain download
-            const link = document.createElement('a');
-            link.download = `sas-${slideZip}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-          }
+      } catch(e) {
+        if (e.name !== 'AbortError') {
+          // File sharing not supported — fall back to download
+          _triggerDownload();
         }
-      } catch(e) { console.error('Share error:', e); }
-      btn.textContent = 'Share'; btn.disabled = false;
+      }
     }
 
     function closeSlideExport() {
       document.getElementById('slide-export-modal').style.display = 'none';
-      slideZip = null;
+      slideZip = null; slideBlob = null;
+    }
+
+    function _triggerDownload() {
+      if (!slideBlob || !slideZip) return;
+      const url  = URL.createObjectURL(slideBlob);
+      const link = document.createElement('a');
+      link.download = `sas-${slideZip}.png`;
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
     async function downloadSlide() {
-      if (!slideZip) return;
+      if (slideBlob) { _triggerDownload(); return; }
+      // Fallback if blob not ready yet
       const slideDiv = document.getElementById('slide-canvas');
-      if (!slideDiv || typeof html2canvas === 'undefined') {
-        alert('html2canvas not loaded. Please try again.');
-        return;
-      }
+      if (!slideDiv || typeof html2canvas === 'undefined') return;
       const btn = document.getElementById('dl-btn');
-      btn.textContent = 'Generating…';
-      btn.disabled = true;
-      await document.fonts.ready;
+      btn.textContent = 'Generating…'; btn.disabled = true;
       try {
+        await document.fonts.ready;
         const canvas = await html2canvas(slideDiv, {
           scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
         });
-        const link = document.createElement('a');
-        link.download = `sas-${slideZip}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        slideBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        _triggerDownload();
       } catch(e) {
         console.error('Slide export failed:', e);
         alert('Export failed — ' + e.message);
@@ -2215,8 +2354,8 @@
           <!-- Footer -->
           <div style="background:#0f0f3c;padding:7px 32px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
             <span style="color:rgba(255,255,255,.7);font-size:9px;font-family:'Roboto',sans-serif">stroke-access-score.vercel.app</span>
-            <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Data source: U.S. Census ACS 2022 · CMS Hospital Data · Drive times</span>
-            <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Research prototype. EMNet certification data pending. Not for clinical use.</span>
+            <span style="color:rgba(255,255,255,.55);font-size:9px;font-family:'Roboto',sans-serif">James Beavis BSN BA &amp; Mike Morales</span>
+            <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Research prototype. Not for clinical use.</span>
           </div>
         </div>`;
     }
