@@ -97,8 +97,9 @@ nav {
 }
 
 /* Penalty table */
+.penalty-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 20px 0; }
 .penalty-table {
-  width: 100%; border-collapse: collapse; margin: 20px 0; font-size: .9rem;
+  width: 100%; min-width: 480px; border-collapse: collapse; font-size: .9rem;
 }
 .penalty-table th {
   background: var(--navy); color: #fff; padding: 10px 14px;
@@ -154,10 +155,11 @@ nav {
 .limitations-list li:last-child { border-bottom: none; }
 
 /* Score scale visual */
-.score-scale { display: flex; gap: 0; margin: 20px 0; height: 36px; }
+.score-scale { display: flex; gap: 0; margin: 20px 0; height: 36px; overflow: hidden; }
 .scale-seg {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .5px;
+  color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;
 }
 
 /* Authors */
@@ -187,10 +189,19 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   .nav-links { display: none; }
   .hamburger { display: flex; }
   .flag-grid { grid-template-columns: 1fr; }
+  .author-block { flex-direction: column; }
+  .about-section p { max-width: 100%; }
 }
 @media (max-width: 480px) {
   .about-body { padding: 40px 16px 60px; }
   footer { padding: 28px 16px; flex-direction: column; }
+  /* Score scale: shorter labels on tiny screens */
+  .scale-seg { font-size: .62rem; padding: 0 3px; }
+  /* Penalty table hint text */
+  .penalty-table-wrap::before {
+    content: 'Scroll →';
+    display: block; font-size: .72rem; color: #999; margin-bottom: 4px;
+  }
 }
 </style>
 </head>
@@ -241,6 +252,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
     <h2>How the Score Works</h2>
     <p>Each hospital is assigned a stroke-care tier based on its CMS overall quality rating (a proxy for certification, pending EMNet data). The four tiers follow the national stroke center hierarchy:</p>
 
+    <div class="penalty-table-wrap">
     <table class="penalty-table">
       <thead>
         <tr>
@@ -282,6 +294,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
         </tr>
       </tbody>
     </table>
+    </div>
 
     <p>For each ZIP code, the SAS score is the <strong>highest adjusted score</strong> across all hospitals in the drive-time cache — i.e., the score reflects the best facility realistically reachable from that ZIP. Penalties are cumulative: a ZIP that is 70 minutes from its nearest CSC receives a score of 100 − 30 − 15 = 55.</p>
 

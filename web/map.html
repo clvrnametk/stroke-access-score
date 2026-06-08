@@ -337,7 +337,9 @@
       max-width: 200px;
     }
 
-    /* ── Detail overlay ── */
+    /* ── Detail overlay — desktop only ──
+       On mobile the overlay would block map panning.
+       The drawer close button handles dismissal on mobile. */
     #detail-overlay {
       display: none;
       position: fixed;
@@ -346,6 +348,9 @@
       z-index: 850;
     }
     #detail-overlay.open { display: block; }
+    @media (max-width: 768px) {
+      #detail-overlay { display: none !important; }  /* never block map touch on mobile */
+    }
 
     /* ── Detail card — left side, beneath search bar, Google Maps style ── */
     #detail-card {
@@ -874,11 +879,14 @@
         right: 0;
         bottom: 0;
         width: 100%;
+        max-width: 100%;
         height: 56vh;
         border-radius: 24px 24px 0 0;
         transform: translateY(100%);
+        overflow: hidden;           /* keeps content within card bounds */
       }
       #detail-card.open { transform: translateY(0); }
+      #detail-content { max-width: 100%; }
       .dc-drag-handle {
         display: block;
         width: 36px;
@@ -892,8 +900,20 @@
       #map-legend { bottom: 16px; right: 8px; }
       #zoom-controls { bottom: 70px; right: 8px; }
       .findings-grid { grid-template-columns: 1fr; }
-      #view-switcher { padding: 6px 12px; }   /* minimal top/bottom padding on mobile */
+      #view-switcher { padding: 6px 12px; }
       .seg-btn { padding: 7px 14px; font-size: .82rem; }
+      /* Mobile drawer top bar: drag handle + close button */
+      .dc-drag-row {
+        display: flex; align-items: center; justify-content: center;
+        padding: 10px 16px 6px; position: relative;
+      }
+      .dc-mobile-close {
+        display: flex; position: absolute; right: 16px; top: 50%;
+        transform: translateY(-50%);
+        background: none; border: 1px solid var(--divider); border-radius: 50%;
+        width: 28px; height: 28px; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 1rem; color: #888; line-height: 1;
+      }
     }
     @media (max-width: 480px) {
       #findings-section { padding: 32px 16px 48px; }
@@ -1490,10 +1510,27 @@
       }).join('');
 
       return `
-        <div class="dc-drag-handle"></div>
-        <!-- Header: area name only — × on the search bar above dismisses the card -->
-        <span class="dc-area-name" id="dc-area-name">ZIP ${zip}</span>
-        <span class="dc-zip-sub">ZIP code ${zip}</span>
+        <!-- Mobile: drag bar + close button. Desktop: drag handle is hidden. -->
+        <div class="dc-drag-row">
+          <div class="dc-drag-handle"></div>
+          <button type="button" class="dc-mobile-close" onclick="returnToViewport()" aria-label="Close">×</button>
+        </div>
+        <!-- Header: area name + compact export button on same line -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div>
+            <span class="dc-area-name" id="dc-area-name">ZIP ${zip}</span>
+            <span class="dc-zip-sub">ZIP code ${zip}</span>
+          </div>
+          <button type="button" onclick="openSlideExport('${zip}')"
+            title="Export as Slide"
+            style="flex-shrink:0;margin-top:2px;padding:4px 10px;
+                   background:transparent;border:1px solid var(--divider);
+                   border-radius:999px;font-family:'Roboto',sans-serif;
+                   font-size:.72rem;color:#888;cursor:pointer;
+                   white-space:nowrap;display:flex;align-items:center;gap:4px">
+            ↗ Slide
+          </button>
+        </div>
         <span class="dc-score" style="color:${color}">${score !== null ? score.toFixed(0) : '—'}</span>
         <span class="dc-label" style="color:${color}">${label}</span>
         <!-- 911 callout sits under the score, not at the very top -->
@@ -1519,14 +1556,7 @@
         <hr class="dc-divider">
         <span class="dc-section-label">Nearby Hospitals (${drives.length})</span>
         ${hospRows}` : ''}
-        <hr class="dc-divider" style="margin-top:16px">
-        <button type="button" onclick="openSlideExport('${zip}')"
-          style="width:100%;padding:12px 0;background:#0f0f3c;color:#fff;border:none;
-                 border-left:4px solid #e10087;border-radius:0 999px 999px 0;
-                 font-family:'Roboto',sans-serif;font-size:.88rem;font-weight:500;
-                 cursor:pointer;letter-spacing:.3px;margin-top:4px">
-          Export as Slide
-        </button>
+        <!-- export button moved to card header -->
       `;
     }
 
