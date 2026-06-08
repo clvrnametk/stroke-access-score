@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stroke Access Score — Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+
+    :root {
+      --navy: #0f0f3c;
+      --pink: #e10087;
+      --bg: #f5f4f8;
+      --text: #3c3c5a;
+      --divider: #e0e0ec;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Roboto', sans-serif;
+      color: var(--text);
+    }
+
+    /* ── Nav ── */
+    nav {
+      height: 56px;
+      min-height: 56px;
+      background: var(--navy);
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 0;
+    }
+    .nav-logo {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.1rem;
+      color: #fff;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-left: 32px;
+    }
+    .nav-links a {
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      font-size: .875rem;
+      font-weight: 500;
+      padding: 0 14px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      border-bottom: 3px solid transparent;
+      transition: color .15s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: #fff;
+      border-bottom-color: var(--pink);
+    }
+    .hamburger {
+      display: none;
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      flex-direction: column;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #fff;
+    }
+    #nav-drawer {
+      display: none;
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      background: var(--navy);
+      z-index: 499;
+      padding: 8px 0 16px;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    #nav-drawer.open { display: block; }
+    #nav-drawer a {
+      display: block;
+      color: rgba(255,255,255,.85);
+      text-decoration: none;
+      padding: 12px 20px;
+      font-size: .9rem;
+      font-weight: 500;
+    }
+    #nav-drawer a:hover,
+    #nav-drawer a.active { color: #fff; background: rgba(255,255,255,.07); }
+
+    /* ── Control Bar ── */
+    #control-bar {
+      min-height: 52px;
+      position: sticky;
+      top: 56px;
+      z-index: 400;
+      background: #fff;
+      border-bottom: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      overflow-x: auto;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* View dropdown */
+    .ctrl-dd { position: relative; flex-shrink: 0; }
+    .ctrl-dd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1.5px solid var(--navy);
+      background: #fff;
+      color: var(--navy);
+      font-family: 'Roboto', sans-serif;
+      font-size: .84rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .ctrl-dd-btn:hover,
+    .ctrl-dd-btn.open { background: var(--navy); color: #fff; }
+    .chevron { transition: transform .15s; }
+    .ctrl-dd-btn.open .chevron { transform: rotate(180deg); }
+    /* Menus are lifted to <body> level and use position:fixed so the
+       control-bar's overflow-x:auto cannot clip them. */
+    .ctrl-dd-menu {
+      display: none;
+      position: fixed;
+      background: #fff;
+      border: 1.5px solid var(--navy);
+      min-width: 190px;
+      z-index: 1200;
+      box-shadow: 2px 4px 12px rgba(0,0,0,.15);
+    }
+    .ctrl-dd-menu.open { display: block; }
+    .ctrl-menu-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 9px 14px;
+      font-size: .84rem;
+      font-family: 'Roboto', sans-serif;
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+    .ctrl-menu-item:hover { background: var(--bg); }
+    .ctrl-menu-item.active { border-left-color: var(--pink); font-weight: 500; color: var(--navy); }
+
+    /* Pills */
+    .ctrl-pills { display: flex; gap: 4px; flex-shrink: 0; }
+    .pill {
+      height: 34px;
+      padding: 0 12px;
+      border: 1.5px solid #9999aa;
+      background: #fff;
+      color: #555;
+      font-family: 'Roboto', sans-serif;
+      font-size: .8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pill:hover { background: #555; border-color: #555; color: #fff; }
+    .pill.active { background: #555; border-color: #555; color: #fff; }
+    .hosp-pill { border-color: var(--navy); color: var(--navy); }
+    .hosp-pill:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .hosp-pill.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* Separator */
+    .ctrl-sep { width: 1px; height: 24px; background: var(--divider); flex-shrink: 0; }
+
+    /* Search */
+    .ctrl-search {
+      position: relative;
+      flex: 0 1 240px;
+      min-width: 120px;
+      display: flex;
+      align-items: center;
+      border: 1.5px solid #9999aa;
+      background: #fff;
+      height: 36px;
+      padding: 0 10px;
+      gap: 7px;
+    }
+    .ctrl-search:focus-within { border-color: var(--navy); }
+    #search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: 'Roboto', sans-serif;
+      font-size: .84rem;
+      color: var(--text);
+      min-width: 0;
+    }
+    #search-input::placeholder { color: #bbb; }
+    .search-results {
+      display: none;
+      position: fixed;
+      background: #fff;
+      border: 1.5px solid var(--navy);
+      z-index: 1200;
+      box-shadow: 2px 4px 12px rgba(0,0,0,.15);
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .search-results.open { display: block; }
+    /* Search submit button */
+    #search-btn {
+      flex-shrink: 0; border: none; background: var(--navy); color: #fff;
+      width: 28px; height: 28px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; margin-right: -4px;
+    }
+    #search-btn:hover { background: #1a1a5c; }
+    /* Typeahead category label */
+    .sr-group {
+      padding: 5px 14px 3px;
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--pink); background: #fafafa;
+      border-bottom: 1px solid var(--divider);
+    }
+    .sr-item-zip { display: flex; align-items: center; gap: 10px; }
+    .sr-zip-dot { width: 8px; height: 8px; flex-shrink: 0; }
+    .sr-zip-score { font-weight: 700; font-size: .8rem; margin-left: auto; flex-shrink: 0; }
+    .sr-item.focused { background: var(--bg); outline: none; }
+    .sr-item {
+      padding: 8px 14px;
+      font-size: .83rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--divider);
+    }
+    .sr-item:last-child { border-bottom: none; }
+    .sr-item:hover { background: var(--bg); }
+    .sr-sub {
+      font-size: .73rem;
+      color: #999;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Zoom buttons */
+    .ctrl-zoom-btn {
+      height: 34px;
+      padding: 0 12px;
+      border: 1.5px solid var(--navy);
+      background: #fff;
+      color: var(--navy);
+      font-family: 'Roboto', sans-serif;
+      font-size: .8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .ctrl-zoom-btn:hover { background: var(--navy); color: #fff; }
+
+    /* ── Map Content ── */
+    #map-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+    #map-area {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Tooltip */
+    #tip {
+      position: absolute;
+      pointer-events: none;
+      z-index: 800;
+      display: none;
+      background: #fff;
+      border: 1px solid var(--navy);
+      padding: 8px 11px;
+      font-size: .8rem;
+      max-width: 220px;
+      box-shadow: 2px 2px 8px rgba(0,0,0,.12);
+      line-height: 1.4;
+    }
+
+    /* ── Right Panel ── */
+    #right-panel {
+      width: 340px;
+      border-left: 2px solid var(--navy);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #panel-body {
+      flex: 1;
+      overflow-y: auto;
+    }
+    #panel-legend {
+      flex-shrink: 0;
+      border-top: 2px solid var(--navy);
+      padding: 14px 16px 16px;
+    }
+
+    /* Section label */
+    .section-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--pink);
+      margin-bottom: 6px;
+    }
+
+    /* Panel header */
+    .panel-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--divider);
+    }
+    .panel-back {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: .8rem;
+      color: var(--pink);
+      font-weight: 500;
+      padding: 0;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+    .panel-back:hover { text-decoration: underline; }
+    .panel-title {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.45rem;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+    .panel-subtitle { font-size: .82rem; color: #777; margin-top: 3px; }
+
+    /* Panel inner */
+    .panel-inner { padding: 14px 18px 24px; }
+    .panel-section {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--divider);
+    }
+
+    /* Stat rows */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--divider);
+      font-size: .85rem;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row-label { color: #777; }
+    .stat-row-val { font-weight: 600; color: var(--navy); }
+
+    /* Demographics bars */
+    .dbar { margin-bottom: 9px; }
+    .dbar-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: .78rem;
+      margin-bottom: 3px;
+    }
+    .dbar-track { height: 6px; background: var(--bg); }
+    .dbar-fill { height: 100%; }
+    .dbar-pink .dbar-fill { background: var(--pink); }
+    .dbar-navy .dbar-fill { background: var(--navy); }
+
+    /* Hospital list items */
+    .hosp-row {
+      padding: 9px 18px;
+      border-bottom: 1px solid var(--divider);
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .hosp-row:hover { background: var(--bg); }
+    .hosp-row:last-child { border-bottom: none; }
+    .hosp-row-num {
+      font-size: .75rem;
+      color: #aaa;
+      font-weight: 500;
+      padding-top: 2px;
+      min-width: 16px;
+    }
+    .hosp-row-body { flex: 1; min-width: 0; }
+    .hosp-row-name { font-size: .85rem; font-weight: 500; line-height: 1.3; }
+    .hosp-row-meta {
+      font-size: .77rem;
+      color: #777;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Flag tags */
+    .flag-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 4px; }
+    .ftag {
+      padding: 3px 9px;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    .ftag-djf { background: #8b0000; }
+    .ftag-sev { background: var(--pink); }
+    .ftag-crf { background: #e67e22; }
+
+    /* Facility badge */
+    .fac-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      background: var(--navy);
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+    }
+
+    /* Score dot */
+    .score-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    /* Legend */
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      font-size: .79rem;
+    }
+    .legend-row:last-child { margin-bottom: 0; }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,.1);
+    }
+
+    /* ── Modal ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+    }
+    #modal-overlay.open { display: block; }
+    #hospital-modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(520px, 90vw);
+      max-height: 82vh;
+      background: #fff;
+      border: 2px solid var(--navy);
+      overflow-y: auto;
+      padding: 28px 28px 32px;
+    }
+    #hospital-modal.open { display: block; }
+    #modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: 1px solid var(--divider);
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    #modal-close:hover { background: var(--bg); }
+    .modal-hosp-name {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.5rem;
+      color: var(--navy);
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+    .modal-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider);
+    }
+    .modal-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--pink);
+      margin-bottom: 10px;
+    }
+    .zip-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--divider);
+      cursor: pointer;
+      font-size: .84rem;
+    }
+    .zip-row:hover { background: var(--bg); margin: 0 -28px; padding: 7px 28px; }
+    .zip-row:last-child { border-bottom: none; }
+    .zip-score { font-weight: 600; font-size: .82rem; }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: var(--navy);
+      z-index: 9000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      color: #fff;
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.25rem;
+      transition: opacity .4s;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,.2);
+      border-top-color: var(--pink);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ── */
+    #error-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: var(--bg);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      padding: 2rem;
+      text-align: center;
+    }
+    #error-panel h2 { color: var(--navy); font-family: 'Roboto Slab', serif; }
+    #error-panel pre {
+      background: #eee;
+      padding: 12px;
+      font-size: .8rem;
+      max-width: 600px;
+      text-align: left;
+      overflow-x: auto;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      #right-panel { display: none; }
+      #map-content { position: relative; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div id="loading">
+    <div class="spinner"></div>
+    Loading Stroke Access Data…
+  </div>
+
+  <!-- Error panel -->
+  <div id="error-panel">
+    <h2>Failed to load data</h2>
+    <p style="color:var(--text);font-size:.9rem">Check that the data files are present and the page is served from a local server.</p>
+    <pre id="error-msg"></pre>
+  </div>
+
+  <!-- Nav -->
+  <nav>
+    <a href="/web/index.html" class="nav-logo">Stroke Access Score</a>
+    <div class="nav-links">
+      <a href="/web/index.html">Home</a>
+      <a href="/web/map.html" class="active">Map</a>
+      <a href="/web/about.html">About</a>
+    </div>
+    <button type="button" class="hamburger" id="hamburger" aria-label="Open navigation" aria-expanded="false" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile nav drawer -->
+  <div id="nav-drawer">
+    <a href="/web/index.html" onclick="closeNav()">Home</a>
+    <a href="/web/map.html" class="active" onclick="closeNav()">Map</a>
+    <a href="/web/about.html" onclick="closeNav()">About</a>
+  </div>
+
+  <!-- Control Bar -->
+  <div id="control-bar">
+
+    <!-- View dropdown (menu lifted to body below) -->
+    <div class="ctrl-dd" id="view-dd">
+      <button type="button" class="ctrl-dd-btn" id="view-btn" onclick="toggleViewDd()">
+        <span id="view-label">SAS Score</span>
+        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+          <path d="M0 0l5 6 5-6z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="ctrl-pills">
+      <button type="button" class="pill active" data-filter="all" onclick="setFilter(this)">All</button>
+      <button type="button" class="pill" data-filter="low" onclick="setFilter(this)">Low Access</button>
+      <button type="button" class="pill" data-filter="high" onclick="setFilter(this)">High Access</button>
+      <button type="button" class="pill" data-filter="flagged" onclick="setFilter(this)">Flagged</button>
+    </div>
+
+    <!-- Separator -->
+    <div class="ctrl-sep"></div>
+
+    <!-- Search (results lifted to body below) -->
+    <div class="ctrl-search" id="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0;color:#999">
+        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+      </svg>
+      <input id="search-input" type="text" placeholder="Search ZIP, city, or address…" autocomplete="off">
+      <button type="button" id="search-btn" onclick="submitSearch()" aria-label="Search">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.8"/>
+          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Hospital toggle -->
+    <button type="button" class="pill hosp-pill active" id="hosp-toggle" onclick="toggleHospitals()">Hospitals ●</button>
+
+    <!-- Zoom buttons -->
+    <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
+      <button type="button" class="ctrl-zoom-btn" onclick="goLA()">Los Angeles</button>
+      <button type="button" class="ctrl-zoom-btn" onclick="goCA()">All California</button>
+    </div>
+
+  </div><!-- /#control-bar -->
+
+  <!-- Map Content -->
+  <div id="map-content">
+
+    <!-- Map Area -->
+    <div id="map-area">
+      <div id="map"></div>
+      <div id="tip"></div>
+    </div>
+
+    <!-- Right Panel -->
+    <div id="right-panel">
+      <div id="panel-body">
+        <!-- Populated by JS -->
+      </div>
+      <div id="panel-legend">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </div><!-- /#map-content -->
+
+  <!-- Modal overlay -->
+  <div id="modal-overlay" onclick="closeHospitalModal()"></div>
+
+  <!-- Hospital modal -->
+  <div id="hospital-modal" role="dialog" aria-modal="true" aria-labelledby="modal-hosp-title">
+    <button type="button" id="modal-close" onclick="closeHospitalModal()" aria-label="Close">✕</button>
+    <div id="modal-body">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    const S = {
+      view: 'sas',
+      filter: 'all',
+      selectedZip: null,
+      data: new Map(),
+      geoLayer: null,
+      hospitalLayer: null,   // assigned in initHospitalLayer() after L is confirmed ready
+      hospitalMarkerMap: new Map(),
+      hospitalMarkersVisible: true,
+      map: null,
+      caBounds: null,
+      incomeQ1: 0,
+      incomeQ2: 0,
+      incomeQ3: 0,
+      maxIncome: 1,
+      zipLayers: new Map(),
+      zipDrives: new Map(),
+      hospitalDrives: new Map(),
+      hospitals: new Map(),
+    };
+
+    // ─ Data loading ─
+    async function loadData() {
+      const [gr, cr, hr, dr] = await Promise.all([
+        fetch('../data/ca_zip_simplified.geojson'),
+        fetch('../data/ca_zip_scores.csv'),
+        fetch('../data/ca_hospitals.json'),
+        fetch('../data/drive_time_cache.json'),
+      ]);
+      if (!gr.ok) throw new Error('GeoJSON ' + gr.status);
+      if (!cr.ok) throw new Error('CSV ' + cr.status);
+      if (!hr.ok) throw new Error('Hospitals ' + hr.status);
+      if (!dr.ok) throw new Error('Drive cache ' + dr.status);
+      return Promise.all([gr.json(), cr.text(), hr.json(), dr.json()]);
+    }
+
+    // ─ CSV parsing ─
+    function parseLine(raw) {
+      const out = []; let cur = '', q = false;
+      for (let i = 0; i < raw.length; i++) {
+        const c = raw[i];
+        if (c === '"') { q = !q; continue; }
+        if (c === ',' && !q) { out.push(cur); cur = ''; continue; }
+        cur += c;
+      }
+      out.push(cur);
+      return out;
+    }
+
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const hdrs = parseLine(lines[0]).map(h => h.trim());
+      return lines.slice(1).filter(Boolean).map(l => {
+        const vals = parseLine(l), obj = {};
+        hdrs.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim(); });
+        return obj;
+      });
+    }
+
+    function num(v, fb = null) { const n = parseFloat(v); return isNaN(n) ? fb : n; }
+
+    function buildDataMap(rows) {
+      rows.forEach(r => {
+        const zip = String(r.zcta ?? '').padStart(5, '0');
+        S.data.set(zip, {
+          zcta: zip,
+          sas_score: num(r.sas_score),
+          total_pop: num(r.total_pop, 0),
+          median_hh_income: num(r.median_hh_income),
+          pct_below_poverty: num(r.pct_below_poverty, 0),
+          pct_hispanic: num(r.pct_hispanic, 0),
+          pct_black_nh: num(r.pct_black_nh, 0),
+          pct_white_nh: num(r.pct_white_nh, 0),
+          pct_asian_nh: num(r.pct_asian_nh, 0),
+          is_majority_minority: +r.is_majority_minority || 0,
+          socioeconomic_vulnerability_flag: +r.socioeconomic_vulnerability_flag || 0,
+          clinical_risk_flag: +r.clinical_risk_flag || 0,
+          double_jeopardy_flag: +r.double_jeopardy_flag || 0,
+          best_facility_id: r.best_facility_id || '',
+          best_facility_name: r.best_facility_name || '—',
+          best_facility_type: r.best_facility_type || '',
+          pw_centroid_lat: num(r.pw_centroid_lat),
+          pw_centroid_lon: num(r.pw_centroid_lon),
+        });
+      });
+    }
+
+    function buildHospitals(arr) { arr.forEach(h => S.hospitals.set(h.facility_id, h)); }
+
+    function buildDriveMaps(cache) {
+      Object.values(cache).forEach(({ zcta, facility_id, drive_minutes, drive_miles }) => {
+        if (!S.zipDrives.has(zcta)) S.zipDrives.set(zcta, []);
+        if (!S.hospitalDrives.has(facility_id)) S.hospitalDrives.set(facility_id, []);
+        S.zipDrives.get(zcta).push({ facility_id, drive_minutes, drive_miles });
+        S.hospitalDrives.get(facility_id).push({ zcta, drive_minutes });
+      });
+      S.zipDrives.forEach(a => a.sort((x, y) => x.drive_minutes - y.drive_minutes));
+      S.hospitalDrives.forEach(a => a.sort((x, y) => x.drive_minutes - y.drive_minutes));
+    }
+
+    // ─ Quartiles ─
+    function calcQuartiles() {
+      const vals = [...S.data.values()].map(d => d.median_hh_income).filter(v => v !== null).sort((a, b) => a - b);
+      const q = p => vals[Math.floor(vals.length * p)] ?? 0;
+      S.incomeQ1 = q(.25);
+      S.incomeQ2 = q(.5);
+      S.incomeQ3 = q(.75);
+      S.maxIncome = vals[vals.length - 1] ?? 1;
+    }
+
+    // ─ Formatting ─
+    function fmtPop(n) {
+      if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return Math.round(n / 1e3) + 'K';
+      return n.toLocaleString();
+    }
+
+    // ─ Colors ─
+    function sasColor(s) {
+      if (s === null || s === undefined) return '#cccccc';
+      if (s < 40) return '#c0392b';
+      if (s < 60) return '#e67e22';
+      if (s < 70) return '#f1c40f';
+      return '#27ae60';
+    }
+
+    function incomeColor(v) {
+      if (v === null) return '#cccccc';
+      if (v <= S.incomeQ1) return '#d0d4e8';
+      if (v <= S.incomeQ2) return '#8892c4';
+      if (v <= S.incomeQ3) return '#3d4f9f';
+      return '#0f0f3c';
+    }
+
+    function flagColor(d) {
+      if (!d) return '#eeeeee';
+      if (d.double_jeopardy_flag === 1) return '#8b0000';
+      if (d.socioeconomic_vulnerability_flag === 1) return '#e10087';
+      if (d.clinical_risk_flag === 1) return '#e67e22';
+      return '#eeeeee';
+    }
+
+    function featureColor(d) {
+      if (!d) return '#cccccc';
+      switch (S.view) {
+        case 'sas': return sasColor(d.sas_score);
+        case 'minority': return d.is_majority_minority === 1 ? '#0f0f3c' : '#e8e8f0';
+        case 'income': return incomeColor(d.median_hh_income);
+        case 'flags': return flagColor(d);
+      }
+      return '#cccccc';
+    }
+
+    function isVisible(d) {
+      if (!d) return S.filter === 'all';
+      switch (S.filter) {
+        case 'all': return true;
+        case 'low': return d.sas_score !== null && d.sas_score < 40;
+        case 'high': return d.sas_score !== null && d.sas_score >= 70;
+        case 'flagged': return d.socioeconomic_vulnerability_flag === 1 || d.clinical_risk_flag === 1 || d.double_jeopardy_flag === 1;
+      }
+      return true;
+    }
+
+    function scoreTier(s) {
+      if (s === null) return 'Unscored';
+      if (s < 40) return 'Low access';
+      if (s < 60) return 'Medium-low';
+      if (s < 70) return 'Medium-high';
+      return 'High access';
+    }
+
+    function zipFromFeature(f) {
+      const p = f.properties;
+      return String(p.ZCTA5CE20 || p.ZCTA5CE10 || p.zcta || p.GEOID20 || '').padStart(5, '0');
+    }
+
+    function styleFor(feature) {
+      const d = S.data.get(zipFromFeature(feature));
+      if (!isVisible(d)) return { fillOpacity: 0, opacity: 0, weight: 0, color: 'transparent' };
+      return { fillColor: featureColor(d), fillOpacity: 0.55, color: '#ffffff', weight: 0.5, opacity: 0.9 };
+    }
+
+    function highlightStyle() {
+      return { weight: 2, color: '#0f0f3c', fillOpacity: 0.75 };
+    }
+
+    // ─ Map init ─
+    function initMap(geo) {
+      const map = L.map('map', { center: [34.05, -118.25], zoom: 9, tap: true, preferCanvas: true });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      }).addTo(map);
+
+      const geoLayer = L.geoJSON(geo, {
+        style: styleFor,
+        onEachFeature(feature, lyr) {
+          const zip = zipFromFeature(feature);
+          const d = S.data.get(zip);
+          S.zipLayers.set(zip, lyr);
+
+          lyr.on('mouseover', e => {
+            if (window.innerWidth < 768 || S.selectedZip === zip) return;
+            lyr.setStyle(highlightStyle());
+            const score = d?.sas_score != null ? d.sas_score.toFixed(0) : 'N/A';
+            const fname = d?.best_facility_name
+              ? (d.best_facility_name.length > 30 ? d.best_facility_name.slice(0, 28) + '…' : d.best_facility_name)
+              : '—';
+            showTip(e, `<strong>ZIP ${zip}</strong><br>Score: <b style="color:${sasColor(d?.sas_score)}">${score}</b><br><span style="font-size:.73rem;color:#666">${fname}</span>`);
+          });
+
+          lyr.on('mousemove', e => {
+            if (window.innerWidth >= 768) {
+              const cp = e.containerPoint;
+              document.getElementById('tip').style.left = (cp.x + 14) + 'px';
+              document.getElementById('tip').style.top = (cp.y - 12) + 'px';
+            }
+          });
+
+          lyr.on('mouseout', () => {
+            hideTip();
+            if (S.selectedZip !== zip) geoLayer.resetStyle(lyr);
+          });
+
+          lyr.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);  // prevent base map click from firing returnToViewport()
+            selectZip(zip);
+          });
+        }
+      }).addTo(map);
+
+      const labelPane = map.createPane('labels');
+      labelPane.style.zIndex = 650;
+      labelPane.style.pointerEvents = 'none';
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+        pane: 'labels',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      S.geoLayer = geoLayer;
+      S.map = map;
+      S.caBounds = geoLayer.getBounds();
+
+      // Clicking empty map space deselects the active ZIP
+      map.on('click', () => { if (S.selectedZip) returnToViewport(); });
+      // Panning/zooming updates viewport stats (only when no ZIP is selected)
+      map.on('moveend', () => { if (!S.selectedZip) updateViewportPanel(); });
+    }
+
+    function initHospitalLayer() {
+      S.hospitalLayer = L.layerGroup();  // safe to call here — L is guaranteed loaded
+      S.hospitals.forEach((h, fid) => {
+        if (!h.lat || !h.lon) return;
+        const m = L.circleMarker([h.lat, h.lon], {
+          radius: 7,
+          fillColor: '#0f0f3c',
+          color: '#ffffff',
+          weight: 2,
+          fillOpacity: 0.9
+        });
+        m.on('mouseover', e => showTip(e, `<strong>${h.facility_name}</strong><br><span style="font-size:.75rem;color:#555">${h.stroke_level} · ${h.city}</span>`));
+        m.on('mouseout', hideTip);
+        m.on('click', e => { L.DomEvent.stopPropagation(e); openHospitalModal(fid); });
+        S.hospitalMarkerMap.set(fid, m);
+        S.hospitalLayer.addLayer(m);
+      });
+      S.hospitalLayer.addTo(S.map);
+    }
+
+    // ─ Tooltip ─
+    function showTip(e, html) {
+      const t = document.getElementById('tip');
+      t.innerHTML = html;
+      t.style.display = 'block';
+      const cp = e.containerPoint;
+      t.style.left = (cp.x + 14) + 'px';
+      t.style.top = (cp.y - 12) + 'px';
+    }
+    function hideTip() { document.getElementById('tip').style.display = 'none'; }
+
+    // ─ Viewport panel ─
+    function updateViewportPanel() {
+      const bounds = S.map.getBounds();
+      const vis = [...S.data.values()].filter(d => d.pw_centroid_lat != null && bounds.contains([d.pw_centroid_lat, d.pw_centroid_lon]));
+      const scored = vis.filter(d => d.sas_score !== null);
+      const low = scored.filter(d => d.sas_score < 40);
+      const mm = vis.filter(d => d.is_majority_minority === 1);
+      const djf = vis.filter(d => d.double_jeopardy_flag === 1);
+      const avgScore = scored.length ? scored.reduce((s, d) => s + d.sas_score, 0) / scored.length : null;
+      const totalPop = vis.reduce((s, d) => s + d.total_pop, 0);
+
+      const pct = (a, b) => b ? ` (${Math.round(a / b * 100)}%)` : '';
+
+      document.getElementById('panel-body').innerHTML = `
+        <div class="panel-header">
+          <span class="section-label">VISIBLE AREA</span>
+          <div class="panel-title">Current View</div>
+          <div class="panel-subtitle">${vis.length} ZIP codes</div>
+        </div>
+        <div class="panel-inner">
+          ${statRow('Population', fmtPop(totalPop))}
+          ${statRow('Avg SAS score', avgScore !== null ? avgScore.toFixed(1) : '—')}
+          ${statRow('Low-access ZIPs', low.length + pct(low.length, scored.length))}
+          ${statRow('Majority-minority', mm.length + ' ZIPs')}
+          ${statRow('Double jeopardy', djf.length + ' ZIPs')}
+        </div>`;
+    }
+
+    function statRow(label, val) {
+      return `<div class="stat-row"><span class="stat-row-label">${label}</span><span class="stat-row-val">${val}</span></div>`;
+    }
+
+    // ─ ZIP selection ─
+    function selectZip(zip) {
+      S.selectedZip = zip;
+      S.geoLayer.setStyle(f => {
+        const z = zipFromFeature(f);
+        return z === zip ? highlightStyle() : styleFor(f);
+      });
+      const d = S.data.get(zip);
+      renderZipPanel(zip, d);
+      const lyr = S.zipLayers.get(zip);
+      if (lyr) S.map.fitBounds(lyr.getBounds(), { padding: [60, 60], maxZoom: 13 });
+      hideTip();
+    }
+
+    function returnToViewport() {
+      S.selectedZip = null;
+      S.geoLayer.setStyle(styleFor);
+      updateViewportPanel();
+    }
+
+    // ─ ZIP panel ─
+    function renderZipPanel(zip, d) {
+      const score = d?.sas_score ?? null;
+      const color = sasColor(score);
+      const tier = scoreTier(score);
+      const flags = [];
+      if (d?.double_jeopardy_flag === 1) {
+        flags.push('<span class="ftag ftag-djf">Double Jeopardy</span>');
+      } else {
+        if (d?.socioeconomic_vulnerability_flag === 1) flags.push('<span class="ftag ftag-sev">SEV</span>');
+        if (d?.clinical_risk_flag === 1) flags.push('<span class="ftag ftag-crf">CRF</span>');
+      }
+
+      const drives = S.zipDrives.get(zip) || [];
+      const hospRows = drives.slice(0, 10).map((e, i) => {
+        const h = S.hospitals.get(e.facility_id);
+        if (!h) return '';
+        return `<div class="hosp-row" onclick="openHospitalModal('${e.facility_id}')">
+          <span class="hosp-row-num">${i + 1}</span>
+          <div class="hosp-row-body">
+            <div class="hosp-row-name">${h.facility_name}</div>
+            <div class="hosp-row-meta"><span class="fac-badge">${h.stroke_level}</span>${e.drive_minutes.toFixed(1)} min</div>
+          </div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('panel-body').innerHTML = `
+        <div class="panel-header">
+          <button type="button" class="panel-back" onclick="returnToViewport()">← Back to view</button>
+          <div class="panel-title">ZIP ${zip}</div>
+        </div>
+        <div class="panel-inner">
+          <div style="font-family:'Roboto Slab',serif;font-size:3rem;line-height:1;color:${color}">${score !== null ? score.toFixed(0) : '—'}</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:${color};margin-bottom:8px">${tier}</div>
+          ${flags.length ? '<div class="flag-tags">' + flags.join('') + '</div>' : ''}
+          <div class="panel-section">
+            <span class="section-label">Demographics</span>
+            ${dbar('% Hispanic', d?.pct_hispanic, 100)}
+            ${dbar('% Black', d?.pct_black_nh, 100)}
+            ${dbar('% White', d?.pct_white_nh, 100)}
+            ${dbar('Below poverty', d?.pct_below_poverty, 50)}
+            ${dbarIncome('Median income', d?.median_hh_income)}
+          </div>
+          <div class="panel-section" style="padding:0">
+            <div style="padding:12px 0 0"><span class="section-label" style="padding:0 18px">Nearby Hospitals (${drives.length})</span></div>
+            ${hospRows || '<p style="font-size:.82rem;color:#999;padding:8px 18px">No drive times available</p>'}
+          </div>
+        </div>`;
+    }
+
+    function dbar(label, val, max) {
+      const pct = Math.min(100, Math.round(Math.max(0, (val || 0) / max * 100)));
+      const disp = (+(val || 0)).toFixed(1) + '%';
+      return `<div class="dbar dbar-pink"><div class="dbar-head"><span>${label}</span><span>${disp}</span></div><div class="dbar-track"><div class="dbar-fill" style="width:${pct}%"></div></div></div>`;
+    }
+
+    function dbarIncome(label, val) {
+      const pct = Math.min(100, Math.round(Math.max(0, (val || 0) / S.maxIncome * 100)));
+      const disp = val != null ? '$' + Math.round(val).toLocaleString() : '—';
+      return `<div class="dbar dbar-navy"><div class="dbar-head"><span>${label}</span><span>${disp}</span></div><div class="dbar-track"><div class="dbar-fill" style="width:${pct}%"></div></div></div>`;
+    }
+
+    // ─ Hospital modal ─
+    function openHospitalModal(fid) {
+      const h = S.hospitals.get(fid);
+      if (!h) return;
+      const drives = (S.hospitalDrives.get(fid) || []);
+      const zipRows = drives.map(e => {
+        const d = S.data.get(e.zcta);
+        const sc = d?.sas_score ?? null;
+        const col = sasColor(sc);
+        return `<div class="zip-row" onclick="closeHospitalModal();selectZip('${e.zcta}')">
+          <div class="score-dot" style="background:${col}"></div>
+          <span style="flex:1">ZIP ${e.zcta}</span>
+          <span style="color:#999;font-size:.78rem">${e.drive_minutes.toFixed(1)} min</span>
+          <span class="zip-score" style="color:${col};min-width:28px;text-align:right">${sc != null ? sc.toFixed(0) : '—'}</span>
+        </div>`;
+      }).join('');
+
+      const ratingStr = h.hospital_overall_rating && h.hospital_overall_rating !== 'Not Available'
+        ? `CMS Rating: <strong>${h.hospital_overall_rating}/5</strong>` : '';
+
+      document.getElementById('modal-body').innerHTML = `
+        <div class="modal-hosp-name">${h.facility_name}</div>
+        <div style="color:#777;font-size:.85rem;margin-bottom:8px">${h.city}, ${h.county} County${ratingStr ? ' — ' + ratingStr : ''}</div>
+        <span class="fac-badge">${h.stroke_level}</span>
+        <div class="modal-section">
+          <div class="modal-section-title">Facility Details</div>
+          <div style="font-size:.84rem;color:var(--text);line-height:1.7">
+            ${h.address}, ${h.city}<br>
+            ${h.telephone || ''}<br>
+            ${h.hospital_type}
+          </div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">ZIP Codes Served (${drives.length})</div>
+          ${zipRows || '<p style="font-size:.82rem;color:#999">No drive-time data available</p>'}
+        </div>`;
+
+      document.getElementById('modal-overlay').classList.add('open');
+      document.getElementById('hospital-modal').classList.add('open');
+    }
+
+    function closeHospitalModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      document.getElementById('hospital-modal').classList.remove('open');
+    }
+
+    // ─ Hospital toggle ─
+    function toggleHospitals() {
+      const btn = document.getElementById('hosp-toggle');
+      if (S.hospitalMarkersVisible) {
+        S.map.removeLayer(S.hospitalLayer);
+        S.hospitalMarkersVisible = false;
+        btn.classList.remove('active');
+      } else {
+        S.map.addLayer(S.hospitalLayer);
+        S.hospitalMarkersVisible = true;
+        btn.classList.add('active');
+      }
+    }
+
+    // ─ View dropdown ─
+    function toggleViewDd() {
+      const btn  = document.getElementById('view-btn');
+      const menu = document.getElementById('view-menu');
+      const open = menu.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      if (open) positionBelow(btn, menu);
+    }
+
+    function setView(el) {
+      const view = el.dataset.view;
+      S.view = view;
+      document.getElementById('view-menu').classList.remove('open');
+      document.getElementById('view-btn').classList.remove('open');
+      const labels = { sas: 'SAS Score', minority: 'Minority Communities', income: 'Income vs Access', flags: 'Vulnerability Flags' };
+      document.getElementById('view-label').textContent = labels[view];
+      document.querySelectorAll('.ctrl-menu-item').forEach(i => i.classList.toggle('active', i.dataset.view === view));
+      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+      updateLegend();
+    }
+
+    // ─ Filter pills ─
+    function setFilter(el) {
+      const filter = el.dataset.filter;
+      S.filter = filter;
+      document.querySelectorAll('.ctrl-pills .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === filter));
+      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+    }
+
+    // ─ Zoom ─
+    function goLA() { S.map.setView([34.05, -118.25], 9); }
+    function goCA() { if (S.caBounds) S.map.fitBounds(S.caBounds, { padding: [24, 24] }); }
+
+    // ─ Legend ─
+    const LEGENDS = {
+      sas: {
+        title: 'SAS Score',
+        items: [
+          ['#27ae60', '70–100  High access'],
+          ['#f1c40f', '60–69   Medium-high'],
+          ['#e67e22', '40–59   Medium-low'],
+          ['#c0392b', '0–39    Low access'],
+          ['#cccccc', 'No data'],
+        ]
+      },
+      minority: {
+        title: 'Minority Communities',
+        items: [
+          ['#0f0f3c', 'Majority-minority'],
+          ['#e8e8f0', 'Non-majority-minority'],
+        ]
+      },
+      income: {
+        title: 'Median HH Income',
+        items: [
+          ['#0f0f3c', 'Top quartile'],
+          ['#3d4f9f', 'Upper-mid quartile'],
+          ['#8892c4', 'Lower-mid quartile'],
+          ['#d0d4e8', 'Bottom quartile'],
+          ['#cccccc', 'No data'],
+        ]
+      },
+      flags: {
+        title: 'Vulnerability Flags',
+        items: [
+          ['#8b0000', 'Double jeopardy'],
+          ['#e10087', 'SEV only'],
+          ['#e67e22', 'CRF only'],
+          ['#eeeeee', 'No flag'],
+        ]
+      },
+    };
+
+    function updateLegend() {
+      const leg = LEGENDS[S.view];
+      document.getElementById('panel-legend').innerHTML = `
+        <span class="section-label">${leg.title}</span>
+        ${leg.items.map(([c, l]) => `<div class="legend-row"><div class="legend-swatch" style="background:${c}"></div><span>${l}</span></div>`).join('')}`;
+    }
+
+    // ─ Search ─
+    let searchTimer = null;
+
+    // Position a floating element below its anchor using fixed coords
+    function positionBelow(anchorEl, floatEl) {
+      const r = anchorEl.getBoundingClientRect();
+      floatEl.style.top    = (r.bottom + 3) + 'px';
+      floatEl.style.left   = r.left + 'px';
+      floatEl.style.width  = Math.max(r.width, 280) + 'px';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('search-input');
+
+      input.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        const v = input.value.trim();
+        if (!v) { closeSearch(); return; }
+        // Instant typeahead for partial digit input
+        if (/^\d+$/.test(v) && v.length < 5) {
+          showZipTypeahead(v);
+          return;
+        }
+        searchTimer = setTimeout(() => doSearch(v), 300);
+      });
+
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeSearch(); input.blur(); }
+        if (e.key === 'Enter')  { clearTimeout(searchTimer); submitSearch(); }
+        // Arrow key navigation through results
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const items = document.querySelectorAll('#search-results .sr-item');
+          const focused = document.querySelector('#search-results .sr-item.focused');
+          let idx = focused ? [...items].indexOf(focused) : -1;
+          if (focused) focused.classList.remove('focused');
+          idx = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+          if (items[idx]) { items[idx].classList.add('focused'); items[idx].scrollIntoView({block:'nearest'}); }
+        }
+        if (e.key === 'Enter') {
+          const focused = document.querySelector('#search-results .sr-item.focused');
+          if (focused) { focused.click(); e.preventDefault(); }
+        }
+      });
+    });
+
+    function submitSearch() {
+      clearTimeout(searchTimer);
+      const v = document.getElementById('search-input').value.trim();
+      if (!v) return;
+      doSearch(v, true);
+    }
+
+    // Instant typeahead from local ZIP data (no API call)
+    function showZipTypeahead(prefix) {
+      const matches = [];
+      for (const [zip, d] of S.data) {
+        if (zip.startsWith(prefix)) {
+          matches.push({ zip, score: d.sas_score });
+          if (matches.length >= 10) break;
+        }
+      }
+      if (!matches.length) { closeSearch(); return; }
+
+      const items = matches.map(({ zip, score }) => {
+        const color = sasColor(score);
+        const tier  = score !== null
+          ? (score < 40 ? 'Low' : score < 60 ? 'Med-low' : score < 70 ? 'Med-high' : 'High')
+          : '—';
+        return {
+          html: `<div class="sr-item-zip">
+            <div class="sr-zip-dot" style="background:${color}"></div>
+            <span><strong>ZIP ${zip}</strong></span>
+            <span class="sr-zip-score" style="color:${color}">${score !== null ? score.toFixed(0) : '—'} <span style="font-weight:400;color:#999;font-size:.75rem">${tier}</span></span>
+          </div>`,
+          action: () => {
+            document.getElementById('search-input').value = '';
+            closeSearch();
+            selectZip(zip);
+          }
+        };
+      });
+      showSearchList(items, 'California ZIPs');
+    }
+
+    async function doSearch(query, pickFirst = false) {
+      if (!query) return;
+
+      // Exact 5-digit ZIP
+      if (/^\d{5}$/.test(query)) {
+        const zip = query.padStart(5, '0');
+        if (S.data.has(zip)) {
+          closeSearch();
+          document.getElementById('search-input').value = '';
+          selectZip(zip);
+          return;
+        }
+        // Partial match fallback
+        showZipTypeahead(query);
+        return;
+      }
+
+      // City / address via Nominatim
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=us&limit=6&addressdetails=1`;
+        const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const data = await res.json();
+        if (!data.length) {
+          showSearchList([{ html: '<span style="color:#999">No results found</span>', action: null }]);
+          return;
+        }
+        const items = data.map(r => {
+          const parts = r.display_name.split(',');
+          const name  = parts[0].trim();
+          const sub   = parts.slice(1, 3).join(',').trim();
+          return {
+            html: `<strong>${name}</strong>${sub ? `<div class="sr-sub">${sub}</div>` : ''}`,
+            action: () => {
+              // Clear any selected ZIP so moveend triggers viewport panel update
+              S.selectedZip = null;
+              S.geoLayer?.setStyle(styleFor);
+              S.map.setView([+r.lat, +r.lon], 12);
+              closeSearch();
+              document.getElementById('search-input').value = '';
+            }
+          };
+        });
+        if (pickFirst && items[0].action) { items[0].action(); return; }
+        showSearchList(items, 'Locations');
+      } catch (e) {
+        showSearchList([{ html: '<span style="color:#999">Search unavailable</span>', action: null }]);
+      }
+    }
+
+    function showSearchList(items, groupLabel) {
+      const el = document.getElementById('search-results');
+      const anchor = document.getElementById('search-wrap');
+      positionBelow(anchor, el);
+
+      const groupHtml = groupLabel
+        ? `<div class="sr-group">${groupLabel}</div>`
+        : '';
+
+      el.innerHTML = groupHtml + items.map((it, i) =>
+        `<div class="sr-item" data-i="${i}">${it.html}</div>`
+      ).join('');
+      el.classList.add('open');
+      el.querySelectorAll('.sr-item').forEach((node, i) => {
+        if (items[i].action) {
+          node.addEventListener('click', items[i].action);
+          node.style.cursor = 'pointer';
+        }
+      });
+    }
+
+    function closeSearch() {
+      const el = document.getElementById('search-results');
+      if (el) { el.innerHTML = ''; el.classList.remove('open'); }
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', e => {
+      const dd = document.getElementById('view-dd');
+      if (dd && !dd.contains(e.target)) {
+        document.getElementById('view-menu').classList.remove('open');
+        document.getElementById('view-btn').classList.remove('open');
+      }
+      const sw = document.getElementById('search-wrap');
+      if (sw && !sw.contains(e.target)) closeSearch();
+    });
+
+    // ─ Nav ─
+    function toggleNav() {
+      const d = document.getElementById('nav-drawer');
+      const b = document.getElementById('hamburger');
+      const open = d.classList.toggle('open');
+      b.setAttribute('aria-expanded', open);
+    }
+    function closeNav() {
+      document.getElementById('nav-drawer').classList.remove('open');
+      document.getElementById('hamburger').setAttribute('aria-expanded', 'false');
+    }
+
+    // ─ Init ─
+    async function init() {
+      try {
+        const [geo, csvText, hospitals, driveCache] = await loadData();
+        buildDataMap(parseCSV(csvText));
+        calcQuartiles();
+        buildHospitals(hospitals);
+        buildDriveMaps(driveCache);
+
+        const loadEl = document.getElementById('loading');
+        loadEl.style.opacity = '0';
+        setTimeout(() => { loadEl.style.display = 'none'; }, 400);
+
+        initMap(geo);
+        initHospitalLayer();
+        S.map.invalidateSize();
+        updateLegend();
+        S.map.once('moveend', updateViewportPanel);
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        const ep = document.getElementById('error-panel');
+        ep.style.display = 'flex';
+        document.getElementById('error-msg').textContent = err.message;
+        console.error(err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+  <!-- ── Floating menus (body-level so overflow:auto on control-bar can't clip them) ── -->
+  <div class="ctrl-dd-menu" id="view-menu">
+    <button type="button" class="ctrl-menu-item active" data-view="sas"      onclick="setView(this)">SAS Score</button>
+    <button type="button" class="ctrl-menu-item"        data-view="minority"  onclick="setView(this)">Minority Communities</button>
+    <button type="button" class="ctrl-menu-item"        data-view="income"    onclick="setView(this)">Income vs Access</button>
+    <button type="button" class="ctrl-menu-item"        data-view="flags"     onclick="setView(this)">Vulnerability Flags</button>
+  </div>
+  <div class="search-results" id="search-results"></div>
+
+</body>
+</html>

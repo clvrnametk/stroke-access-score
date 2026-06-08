@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — Stroke Access Score</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap">
+<style>
+:root {
+  --navy:    #0f0f3c;
+  --pink:    #e10087;
+  --bg:      #f5f4f8;
+  --text:    #3c3c5a;
+  --divider: #e0e0ec;
+  --white:   #ffffff;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Roboto', sans-serif; color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6; }
+h1,h2,h3 { font-family: 'Roboto Slab', serif; font-weight: 700; }
+a { color: var(--pink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Nav */
+nav {
+  position: sticky; top: 0; z-index: 500; background: var(--navy);
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.nav-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1.05rem; }
+.nav-links { display: flex; gap: 4px; }
+.nav-link {
+  color: rgba(255,255,255,.75); padding: 6px 10px; font-size: .9rem;
+  border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+  text-decoration: none; cursor: pointer;
+}
+.nav-link:hover, .nav-link.active { color: #fff; border-bottom-color: var(--pink); }
+.hamburger {
+  display: none; flex-direction: column; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 8px;
+  min-height: 44px; min-width: 44px; align-items: center; justify-content: center;
+}
+.hamburger span { display: block; width: 22px; height: 2px; background: #fff; }
+.nav-drawer {
+  display: none; position: absolute; top: 56px; left: 0; right: 0;
+  background: var(--navy); border-top: 1px solid rgba(255,255,255,.1); z-index: 490;
+}
+.nav-drawer.open { display: block; }
+.nav-drawer-link {
+  display: block; color: rgba(255,255,255,.8); padding: 14px 24px;
+  border-left: 3px solid transparent; cursor: pointer;
+  transition: background .15s, border-color .15s; text-decoration: none; min-height: 44px;
+}
+.nav-drawer-link:hover, .nav-drawer-link.active {
+  background: rgba(255,255,255,.06); border-left-color: var(--pink); color: #fff;
+}
+
+/* Hero */
+.about-hero {
+  background: var(--navy); color: #fff;
+  padding: clamp(48px,7vw,80px) 24px clamp(40px,5vw,64px);
+}
+.about-hero .inner { max-width: 780px; margin: 0 auto; }
+.section-label {
+  display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--pink); margin-bottom: 10px;
+}
+.about-hero h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.1; margin-bottom: 18px; }
+.about-hero p { color: rgba(255,255,255,.72); font-size: clamp(.95rem, 2vw, 1.1rem); max-width: 660px; }
+
+/* Content */
+.about-body { max-width: 820px; margin: 0 auto; padding: 64px 24px 80px; }
+
+/* Section */
+.about-section { margin-bottom: 56px; }
+.about-section h2 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem); color: var(--navy); margin-bottom: 8px;
+  border-left: 4px solid var(--pink); padding-left: 14px;
+}
+.about-section p { margin-top: 14px; color: var(--text); font-size: .97rem; max-width: 700px; }
+.about-section p + p { margin-top: 10px; }
+
+/* Hypothesis pull quote */
+.hypothesis-block {
+  margin: 24px 0; padding: 20px 24px;
+  border-left: 4px solid var(--pink); background: rgba(225,0,135,.04);
+  font-size: 1.05rem; color: var(--navy); line-height: 1.6; font-style: italic;
+}
+
+/* Penalty table */
+.penalty-table {
+  width: 100%; border-collapse: collapse; margin: 20px 0; font-size: .9rem;
+}
+.penalty-table th {
+  background: var(--navy); color: #fff; padding: 10px 14px;
+  text-align: left; font-weight: 500; font-family: 'Roboto', sans-serif;
+}
+.penalty-table td { padding: 9px 14px; border-bottom: 1px solid var(--divider); }
+.penalty-table tr:last-child td { border-bottom: none; }
+.penalty-table tr:nth-child(even) td { background: var(--bg); }
+.level-badge {
+  display: inline-block; padding: 2px 8px; background: var(--navy); color: #fff;
+  font-size: .7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+}
+.level-badge.csc { background: #27ae60; }
+.level-badge.tsc { background: #3d4f9f; }
+.level-badge.psc { background: #e67e22; }
+.level-badge.asrh { background: #888; }
+
+/* Flag definitions */
+.flag-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+.flag-card {
+  padding: 16px 18px;
+  border: 1px solid var(--divider); border-top: 3px solid;
+}
+.flag-card.djf { border-top-color: #8b0000; }
+.flag-card.sev { border-top-color: var(--pink); }
+.flag-card.crf { border-top-color: #e67e22; }
+.flag-card h4 { font-family: 'Roboto Slab', serif; font-size: 1rem; color: var(--navy); margin-bottom: 6px; }
+.flag-card p { font-size: .83rem; color: var(--text); line-height: 1.5; }
+
+/* Data sources */
+.sources-list { list-style: none; margin-top: 16px; }
+.sources-list li {
+  padding: 11px 0; border-bottom: 1px solid var(--divider); font-size: .9rem;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.sources-list li:last-child { border-bottom: none; }
+.source-dot {
+  width: 8px; height: 8px; background: var(--pink); flex-shrink: 0; margin-top: 6px;
+}
+.source-name { font-weight: 500; color: var(--navy); margin-bottom: 2px; }
+.source-desc { font-size: .82rem; color: #777; }
+
+/* Limitations */
+.limitations-list { list-style: none; margin-top: 16px; }
+.limitations-list li {
+  padding: 10px 0 10px 18px; border-bottom: 1px solid var(--divider);
+  font-size: .9rem; position: relative; color: var(--text);
+}
+.limitations-list li::before {
+  content: ''; position: absolute; left: 0; top: 18px;
+  width: 6px; height: 6px; background: var(--navy);
+}
+.limitations-list li:last-child { border-bottom: none; }
+
+/* Score scale visual */
+.score-scale { display: flex; gap: 0; margin: 20px 0; height: 36px; }
+.scale-seg {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .5px;
+}
+
+/* Authors */
+.author-block { margin-top: 20px; padding: 20px 24px; border: 2px solid var(--navy); display: flex; gap: 16px; align-items: flex-start; }
+.author-avatar {
+  width: 48px; height: 48px; background: var(--navy); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-family: 'Roboto Slab', serif; font-size: 1.1rem;
+}
+.author-name { font-weight: 700; font-size: 1rem; color: var(--navy); }
+.author-title { font-size: .83rem; color: #777; margin-top: 2px; }
+
+/* Footer */
+footer {
+  background: var(--navy); color: rgba(255,255,255,.65);
+  padding: 36px 24px; display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 24px; flex-wrap: wrap;
+}
+.footer-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
+.footer-note { max-width: 420px; font-size: .82rem; line-height: 1.6; color: rgba(255,255,255,.45); }
+
+/* Divider */
+hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .flag-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .about-body { padding: 40px 16px 60px; }
+  footer { padding: 28px 16px; flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav id="main-nav">
+  <div class="nav-logo">Stroke Access Score</div>
+  <div class="nav-links">
+    <a class="nav-link" href="/web/index.html">Home</a>
+    <a class="nav-link" href="/web/map.html">Map</a>
+    <a class="nav-link active" href="/web/about.html">About</a>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <a class="nav-drawer-link" href="/web/index.html" onclick="closeNav()">Home</a>
+  <a class="nav-drawer-link" href="/web/map.html" onclick="closeNav()">Map</a>
+  <a class="nav-drawer-link active" href="/web/about.html" onclick="closeNav()">About</a>
+</div>
+
+<!-- Hero -->
+<div class="about-hero">
+  <div class="inner">
+    <span class="section-label">About This Project</span>
+    <h1>Mapping the Geography of Stroke Care</h1>
+    <p>The Stroke Access Score is a research tool built to quantify geographic inequity in access to stroke-certified hospitals across California — and to examine how that inequity intersects with race, income, and clinical risk.</p>
+  </div>
+</div>
+
+<!-- Body -->
+<div class="about-body">
+
+  <!-- Hypothesis -->
+  <div class="about-section">
+    <h2>The Hypothesis</h2>
+    <p>Time-to-treatment is the single most critical determinant of stroke outcome. A patient receiving clot-busting therapy within 60 minutes of stroke onset ("golden hour") is dramatically more likely to survive without disability than one who arrives later. The location of certified stroke centers is therefore not an abstract planning concern — it is a life-and-death variable.</p>
+    <div class="hypothesis-block">
+      Urban proximity bias in U.S. hospital siting means that rural, low-income, and minority communities are systematically farther from certified stroke centers — and that this geographic inequity compounds the clinical stroke risk factors already concentrated in those same communities.
+    </div>
+    <p>This project tests that hypothesis empirically for every ZIP code in California using drive-time data, Census demographics, and CMS hospital quality ratings as a proxy for stroke certification capability.</p>
+  </div>
+
+  <!-- How the Score Works -->
+  <div class="about-section">
+    <h2>How the Score Works</h2>
+    <p>Each hospital is assigned a stroke-care tier based on its CMS overall quality rating (a proxy for certification, pending EMNet data). The four tiers follow the national stroke center hierarchy:</p>
+
+    <table class="penalty-table">
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Description</th>
+          <th>Base Score</th>
+          <th>Penalty &gt;30 min</th>
+          <th>Penalty &gt;60 min</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="level-badge csc">CSC</span></td>
+          <td>Comprehensive Stroke Center — full thrombectomy + complex care</td>
+          <td>100</td>
+          <td>−30</td>
+          <td>−15</td>
+        </tr>
+        <tr>
+          <td><span class="level-badge tsc">TSC</span></td>
+          <td>Thrombectomy-capable Stroke Center</td>
+          <td>75</td>
+          <td>−15</td>
+          <td>−15</td>
+        </tr>
+        <tr>
+          <td><span class="level-badge psc">PSC</span></td>
+          <td>Primary Stroke Center — IV tPA capable</td>
+          <td>50</td>
+          <td>−15</td>
+          <td>−15</td>
+        </tr>
+        <tr>
+          <td><span class="level-badge asrh">ASRH</span></td>
+          <td>Acute Stroke Ready Hospital — stabilization + transfer</td>
+          <td>25</td>
+          <td>−20</td>
+          <td>−15</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>For each ZIP code, the SAS score is the <strong>highest adjusted score</strong> across all hospitals in the drive-time cache — i.e., the score reflects the best facility realistically reachable from that ZIP. Penalties are cumulative: a ZIP that is 70 minutes from its nearest CSC receives a score of 100 − 30 − 15 = 55.</p>
+
+    <div class="score-scale">
+      <div class="scale-seg" style="background:#c0392b;flex:4">0–39<br><span style="font-size:.65rem">Low</span></div>
+      <div class="scale-seg" style="background:#e67e22;flex:2">40–59<br><span style="font-size:.65rem">Med-low</span></div>
+      <div class="scale-seg" style="background:#f1c40f;color:#333;flex:1">60–69</div>
+      <div class="scale-seg" style="background:#27ae60;flex:3">70–100<br><span style="font-size:.65rem">High</span></div>
+    </div>
+  </div>
+
+  <!-- Vulnerability Flags -->
+  <div class="about-section">
+    <h2>Vulnerability Flags</h2>
+    <p>Three flags identify ZIP codes where poor access intersects with community-level risk factors.</p>
+    <div class="flag-grid">
+      <div class="flag-card sev">
+        <h4>SEV — Socioeconomic Vulnerability</h4>
+        <p>SAS score &lt; 40, majority-minority community, AND poverty rate &gt; 20% or uninsured rate &gt; 15%.</p>
+      </div>
+      <div class="flag-card crf">
+        <h4>CRF — Clinical Risk Factor</h4>
+        <p>SAS score &lt; 40, AND median age &gt; 40 — indicating elevated population-level stroke risk.</p>
+      </div>
+      <div class="flag-card djf">
+        <h4>Double Jeopardy</h4>
+        <p>Both SEV and CRF flags are active — communities facing simultaneously poor access and high stroke risk burden.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Sources -->
+  <div class="about-section">
+    <h2>Data Sources</h2>
+    <ul class="sources-list">
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">CMS Hospital Compare</div>
+          <div class="source-desc">Hospital characteristics, overall quality ratings (1–5), and facility type for all 378 California hospitals. Used to infer stroke certification tier as a proxy (EMNet certification data pending).</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">U.S. Census — ACS 5-Year Estimates, 2022</div>
+          <div class="source-desc">ZIP Code Tabulation Area (ZCTA) level demographics including total population, race/ethnicity breakdowns, median household income, poverty rate, health insurance coverage, and median age.</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">Census TIGER/Line Shapefiles, 2022</div>
+          <div class="source-desc">ZCTA boundary geometries used for choropleth mapping and geographic area calculations. Geometries simplified to 0.005° tolerance for web performance.</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">Census 2020 Decennial — Block-level Population</div>
+          <div class="source-desc">PL 94-171 redistricting data used to compute population-weighted centroids for each ZCTA, replacing geometric centroids for more accurate geographic representation of where people actually live.</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">Drive-Time Cache</div>
+          <div class="source-desc">8,986 precomputed origin-destination drive times between California ZCTAs and the 338 geocoded hospitals. Distances computed via point-to-point routing. Collection methodology pending documentation.</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">Census Geocoder API</div>
+          <div class="source-desc">Free batch geocoding used to assign latitude/longitude to the 378 hospital addresses. 338 of 378 (89.4%) were successfully geocoded.</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Limitations -->
+  <div class="about-section">
+    <h2>Limitations &amp; Caveats</h2>
+    <ul class="limitations-list">
+      <li><strong>CMS ratings as proxy:</strong> Hospital overall ratings are used as a substitute for formal stroke center certification (CSC/TSC/PSC/ASRH from The Joint Commission or DNV). These are correlated but not identical. Actual certification data from EMNet will improve accuracy in future versions.</li>
+      <li><strong>Drive-time estimates:</strong> Times are point-to-centroid estimates under typical traffic conditions — not EMS routing times, which vary by dispatch location, traffic, and availability. Actual ambulance travel times will differ.</li>
+      <li><strong>ZCTA-level resolution:</strong> ZIP Code Tabulation Areas are administrative units averaging several square miles. Within a single ZCTA, access can vary substantially. The score represents an average condition, not any individual's experience.</li>
+      <li><strong>Static snapshot:</strong> Scores are based on 2022 ACS data and a single drive-time collection. Hospital closures, new certifications, or demographic shifts are not reflected.</li>
+      <li><strong>No weighting for hospital capacity:</strong> A ZIP 10 minutes from a CSC with 4 stroke beds is scored the same as one 10 minutes from a CSC with 40 beds. Capacity constraints are not modeled.</li>
+      <li><strong>Not for clinical or emergency use:</strong> This tool is for research and policy analysis only. It should not be used to guide individual patient routing or emergency medical decisions.</li>
+    </ul>
+  </div>
+
+  <!-- Authors -->
+  <div class="about-section">
+    <h2>About the Authors</h2>
+    <div class="author-block">
+      <div class="author-avatar">JB</div>
+      <div>
+        <div class="author-name">James Beavis BSN BA</div>
+        <div class="author-title">Registered Nurse — Hypothesis, clinical methodology, and stroke care domain expertise</div>
+      </div>
+    </div>
+    <div class="author-block" style="margin-top:12px">
+      <div class="author-avatar">MM</div>
+      <div>
+        <div class="author-name">Mike Morales</div>
+        <div class="author-title">Data pipeline, geographic analysis, and visualization</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /about-body -->
+
+<hr>
+<footer>
+  <div>
+    <div class="footer-logo">Stroke Access Score</div>
+    <div style="font-size:.85rem">A research project by James Beavis BSN BA &amp; Mike Morales</div>
+  </div>
+  <div class="footer-note">
+    Scores are based on CMS hospital ratings as a proxy for stroke certification.
+    EMNet certification data pending. Not for clinical use.
+  </div>
+</footer>
+
+<script>
+function toggleNav(){
+  const d=document.getElementById('nav-drawer');
+  const b=document.getElementById('hamburger');
+  const open=d.classList.toggle('open');
+  b.setAttribute('aria-expanded',open);
+}
+function closeNav(){
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('hamburger').setAttribute('aria-expanded','false');
+}
+document.addEventListener('click',e=>{
+  const drawer=document.getElementById('nav-drawer');
+  const btn=document.getElementById('hamburger');
+  if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&!btn.contains(e.target))closeNav();
+});
+</script>
+</body>
+</html>
