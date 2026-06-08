@@ -195,12 +195,47 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
 @media (max-width: 480px) {
   .about-body { padding: 40px 16px 60px; }
   footer { padding: 28px 16px; flex-direction: column; }
-  /* Score scale: shorter labels on tiny screens */
   .scale-seg { font-size: .62rem; padding: 0 3px; }
-  /* Penalty table hint text */
   .penalty-table-wrap::before {
     content: 'Scroll →';
     display: block; font-size: .72rem; color: #999; margin-bottom: 4px;
+  }
+}
+
+/* Download PDF button */
+.download-pdf-wrap {
+  max-width: 820px; margin: 0 auto;
+  padding: 0 24px 32px; display: flex; justify-content: flex-end;
+}
+.download-pdf-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; background: #0f0f3c; color: #fff;
+  border: none; border-radius: 999px; cursor: pointer;
+  font-family: 'Roboto', sans-serif; font-size: .88rem; font-weight: 500;
+  transition: background .15s;
+  text-decoration: none;
+}
+.download-pdf-btn:hover  { background: #e10087; }
+.download-pdf-btn:active { background: #b8006b; }
+
+/* ── Print stylesheet ── */
+@media print {
+  nav, .nav-drawer, .download-pdf-wrap, footer, hr { display: none !important; }
+  .about-hero { padding: 24px 0; }
+  .about-hero h1 { font-size: 1.8rem; }
+  body { font-size: 11pt; color: #000; }
+  .about-body { padding: 16px 0; max-width: 100%; }
+  .about-section h2 { font-size: 1.2rem; break-after: avoid; }
+  .about-section { page-break-inside: avoid; margin-bottom: 24pt; }
+  .flag-grid { grid-template-columns: repeat(3,1fr); gap: 8pt; }
+  .flag-card { border: 1px solid #ccc; padding: 8pt; }
+  .score-scale .scale-seg { font-size: 8pt; }
+  .author-block { border: 1px solid #ccc; }
+  a { color: #000; text-decoration: none; }
+  /* Print header */
+  .about-hero::before {
+    content: 'Stroke Access Score — Methodology';
+    display: block; font-size: 1rem; font-weight: 700; color: #0f0f3c; margin-bottom: 8pt;
   }
 }
 </style>
@@ -408,6 +443,17 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   </div>
 
 </div><!-- /about-body -->
+
+<!-- Download PDF -->
+<div class="download-pdf-wrap">
+  <button class="download-pdf-btn" onclick="window.print()">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    Download PDF
+  </button>
+</div>
 
 <hr>
 <footer>

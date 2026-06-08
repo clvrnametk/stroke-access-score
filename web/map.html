@@ -874,10 +874,10 @@
       font-family: 'Roboto', sans-serif; font-size: .9rem; font-weight: 500;
       cursor: pointer; letter-spacing: .3px;
       background: #0f0f3c; color: #fff;
-      transition: background .15s;
+      transition: background .18s;
     }
-    .modal-action-btn:hover  { background: #1e2a5e; }
-    .modal-action-btn:active { background: #0a0a28; }
+    .modal-action-btn:hover  { background: #e10087; }   /* pink on hover — clearly distinct */
+    .modal-action-btn:active { background: #b8006b; }
     .modal-close-btn {
       padding: 11px 32px; background: transparent; color: #fff;
       border: 2px solid rgba(255,255,255,.5); border-radius: 999px;
@@ -893,8 +893,8 @@
       color: #fff; cursor: pointer; white-space: nowrap;
       transition: background .15s;
     }
-    .dc-export-btn:hover  { background: #1e2a5e; }
-    .dc-export-btn:active { background: #0a0a28; }
+    .dc-export-btn:hover  { background: #e10087; }
+    .dc-export-btn:active { background: #b8006b; }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -2023,40 +2023,42 @@
         const canvas = await html2canvas(slideDiv, {
           scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
         });
-        canvas.toBlob(async blob => {
-          const file = new File([blob], `sas-${slideZip}.png`, { type: 'image/png' });
-          // Prefer file sharing (iOS Safari, some Android); fall back to URL share (Android Chrome)
-          const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
-          try {
-            if (canShareFiles) {
-              // Opens native share sheet with the image attached
-              await navigator.share({
-                title: `ZIP ${slideZip} — Stroke Access Score`,
-                files: [file]
-              });
-            } else {
-              // Android Chrome: share sheet with URL + text, then also download image
-              await navigator.share({
-                title: `ZIP ${slideZip} — Stroke Access Score`,
-                text: `Stroke Access Score for ZIP ${slideZip}`,
-                url: window.location.href
-              });
-              // Trigger download alongside the share so the image isn't lost
-              const link = document.createElement('a');
-              link.download = `sas-${slideZip}.png`;
-              link.href = canvas.toDataURL('image/png');
-              link.click();
-            }
-          } catch(e) {
-            if (e.name !== 'AbortError') {
-              // User cancelled or share not available — fall back to plain download
-              const link = document.createElement('a');
-              link.download = `sas-${slideZip}.png`;
-              link.href = canvas.toDataURL('image/png');
-              link.click();
-            }
+
+        // Convert toBlob via Promise so we stay inside the async chain.
+        // Using a callback breaks the user-activation context on iOS Chrome/Safari,
+        // which causes navigator.share to be rejected as "not called from user gesture".
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const file = new File([blob], `sas-${slideZip}.png`, { type: 'image/png' });
+
+        const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+
+        try {
+          if (canShareFiles) {
+            // iOS Safari, modern Chrome for Android — full image share sheet
+            await navigator.share({ title: `ZIP ${slideZip} — Stroke Access Score`, files: [file] });
+          } else if (navigator.share) {
+            // Browsers with share API but no file support — share URL + also download image
+            await navigator.share({
+              title: `ZIP ${slideZip} — Stroke Access Score`,
+              text: `Stroke Access Score for ZIP ${slideZip}`,
+              url: window.location.href
+            });
+            const link = document.createElement('a');
+            link.download = `sas-${slideZip}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          } else {
+            throw new Error('share-not-supported');
           }
-        }, 'image/png');
+        } catch(e) {
+          if (e.name !== 'AbortError') {
+            // Fall back to plain download
+            const link = document.createElement('a');
+            link.download = `sas-${slideZip}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          }
+        }
       } catch(e) { console.error('Share error:', e); }
       btn.textContent = 'Share'; btn.disabled = false;
     }
