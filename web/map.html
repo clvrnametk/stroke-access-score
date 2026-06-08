@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L8BH5KFWLY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-L8BH5KFWLY');
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stroke Access Score — Map</title>
@@ -1207,6 +1215,12 @@
         return z === zip ? highlightStyle() : styleFor(f);
       });
       const d = S.data.get(zip);
+      const score = d?.sas_score ?? null;
+      const flagType = d?.double_jeopardy_flag === 1 ? 'double_jeopardy'
+        : d?.socioeconomic_vulnerability_flag === 1 ? 'sev'
+        : d?.clinical_risk_flag === 1 ? 'crf'
+        : 'none';
+      gtag('event', 'zip_selected', { zip_code: zip, sas_score: score, vulnerability_flag: flagType });
       const isMobile = window.innerWidth < 768;
 
       if (isMobile) {
@@ -1430,6 +1444,7 @@
       document.querySelectorAll('.ctrl-menu-item').forEach(i => i.classList.toggle('active', i.dataset.view === view));
       if (S.geoLayer) S.geoLayer.setStyle(styleFor);
       updateLegend();
+      gtag('event', 'view_changed', { view_name: labels[view] });
     }
 
     // ─ Filter pills ─
