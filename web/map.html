@@ -128,6 +128,18 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
+    /* Filters sub-row — scrollable group on desktop too */
+    .ctrl-filters-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+    .ctrl-filters-row::-webkit-scrollbar { display: none; }
 
     /* View dropdown */
     .ctrl-dd { position: relative; flex-shrink: 0; }
@@ -560,6 +572,51 @@
     .zip-score { font-weight: 600; font-size: .82rem; }
 
     /* ── Loading ── */
+    /* ── Safety disclaimer modal ── */
+    #safety-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.78);
+      z-index: 9100;          /* above the loading overlay (9000) */
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #safety-overlay.visible { display: flex; }
+    #safety-modal {
+      background: #fff;
+      border: 3px solid var(--navy);
+      max-width: 540px; width: 100%;
+      padding: clamp(24px,5vw,40px) clamp(20px,5vw,36px);
+    }
+    .sm-title {
+      font-family: 'Roboto Slab', serif; font-weight: 700;
+      font-size: clamp(1.5rem,4vw,2rem); color: var(--navy);
+      margin-bottom: 4px; line-height: 1.1;
+    }
+    .sm-subtitle {
+      display: block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 2px;
+      color: var(--pink); margin-bottom: 20px;
+    }
+    .sm-body {
+      font-size: .92rem; color: var(--text);
+      line-height: 1.65; margin-bottom: 16px;
+    }
+    .sm-warning {
+      font-size: .92rem; line-height: 1.6;
+      color: #8b0000; margin-bottom: 28px;
+      padding: 11px 14px;
+      border-left: 4px solid #8b0000;
+      background: rgba(139,0,0,.06);
+    }
+    .sm-btn {
+      width: 100%; background: var(--navy); color: #fff;
+      border: 2px solid var(--navy); padding: 13px 0;
+      font-family: 'Roboto', sans-serif; font-size: .95rem;
+      font-weight: 500; cursor: pointer; letter-spacing: .3px;
+    }
+    .sm-btn:hover { background: #1a1a5c; border-color: #1a1a5c; }
+
     #loading {
       position: fixed;
       inset: 0;
@@ -608,16 +665,102 @@
       overflow-x: auto;
     }
 
+    /* ── Mobile ZIP drawer ── */
+    #mobile-zip-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.3); z-index: 850;
+    }
+    #mobile-zip-overlay.open { display: block; }
+
+    #mobile-zip-drawer {
+      display: none; position: fixed;
+      bottom: 0; left: 0; right: 0; z-index: 900;
+      background: #fff; border-top: 3px solid var(--navy);
+      max-height: 62vh; overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform .32s cubic-bezier(.4,0,.2,1);
+    }
+    #mobile-zip-drawer.open {
+      display: block; transform: translateY(0);
+    }
+    .mzd-topbar {
+      position: sticky; top: 0; z-index: 10;
+      background: #fff; display: flex; align-items: center;
+      padding: 10px 16px 8px; border-bottom: 1px solid var(--divider);
+      gap: 10px;
+    }
+    .mzd-handle {
+      width: 36px; height: 4px; background: #ddd; flex-shrink: 0; margin: 0 auto;
+    }
+    .mzd-close {
+      margin-left: auto; background: none; border: 1px solid var(--divider);
+      width: 32px; height: 32px; flex-shrink: 0; cursor: pointer;
+      font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+    }
+    .mzd-close:hover { background: var(--bg); }
+    #mobile-zip-content { padding: 14px 16px 32px; }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       #right-panel { display: none; }
       #map-content { position: relative; }
       .hamburger { display: flex; }
       .nav-links { display: none; }
+
+      /* Stack control bar: search on top, filters scrollable below */
+      #control-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 8px 12px;
+        gap: 6px;
+        overflow-x: visible;
+        white-space: normal;
+      }
+      /* Search box: full width on top */
+      .ctrl-search {
+        flex: none;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        order: -1;
+        height: 40px;
+      }
+      /* Filters row: scrollable second line */
+      .ctrl-filters-row {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+        align-items: center;
+      }
+      .ctrl-filters-row::-webkit-scrollbar { display: none; }
+      /* Hide zoom buttons on mobile (use search instead) */
+      .ctrl-zoom-wrap { display: none; }
     }
+    /* On mobile the flex chain handles map height — no fixed override needed */
   </style>
 </head>
 <body>
+
+  <!-- Safety disclaimer modal (z-index above loading overlay) -->
+  <div id="safety-overlay" role="dialog" aria-modal="true" aria-labelledby="sm-title">
+    <div id="safety-modal">
+      <h1 class="sm-title" id="sm-title">Stroke Access Score</h1>
+      <span class="sm-subtitle">A Research Prototype</span>
+      <p class="sm-body">
+        This tool uses hospital quality ratings as a proxy for stroke certification.
+        EMNet certification data is pending. Scores will be updated when authoritative
+        certification data is available.
+      </p>
+      <p class="sm-warning">
+        <strong>Do not use this tool to make clinical decisions. In a stroke emergency,
+        always call 911 and follow EMS guidance on hospital destination.</strong>
+      </p>
+      <button class="sm-btn" onclick="dismissSafetyModal()">I Understand</button>
+    </div>
+  </div>
 
   <!-- Loading overlay -->
   <div id="loading">
@@ -655,28 +798,7 @@
   <!-- Control Bar -->
   <div id="control-bar">
 
-    <!-- View dropdown (menu lifted to body below) -->
-    <div class="ctrl-dd" id="view-dd">
-      <button type="button" class="ctrl-dd-btn" id="view-btn" onclick="toggleViewDd()">
-        <span id="view-label">SAS Score</span>
-        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
-          <path d="M0 0l5 6 5-6z"/>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Filter pills -->
-    <div class="ctrl-pills">
-      <button type="button" class="pill active" data-filter="all" onclick="setFilter(this)">All</button>
-      <button type="button" class="pill" data-filter="low" onclick="setFilter(this)">Low Access</button>
-      <button type="button" class="pill" data-filter="high" onclick="setFilter(this)">High Access</button>
-      <button type="button" class="pill" data-filter="flagged" onclick="setFilter(this)">Flagged</button>
-    </div>
-
-    <!-- Separator -->
-    <div class="ctrl-sep"></div>
-
-    <!-- Search (results lifted to body below) -->
+    <!-- Search (top row on mobile, inline on desktop) -->
     <div class="ctrl-search" id="search-wrap">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0;color:#999">
         <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
@@ -691,13 +813,36 @@
       </button>
     </div>
 
-    <!-- Hospital toggle -->
-    <button type="button" class="pill hosp-pill active" id="hosp-toggle" onclick="toggleHospitals()">Hospitals ●</button>
+    <!-- Filters row: view dropdown + pills + hospital toggle + zoom (scrollable on mobile) -->
+    <div class="ctrl-filters-row">
+      <!-- View dropdown (menu lifted to body below) -->
+      <div class="ctrl-dd" id="view-dd">
+        <button type="button" class="ctrl-dd-btn" id="view-btn" onclick="toggleViewDd()">
+          <span id="view-label">SAS Score</span>
+          <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+            <path d="M0 0l5 6 5-6z"/>
+          </svg>
+        </button>
+      </div>
 
-    <!-- Zoom buttons -->
-    <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
-      <button type="button" class="ctrl-zoom-btn" onclick="goLA()">Los Angeles</button>
-      <button type="button" class="ctrl-zoom-btn" onclick="goCA()">All California</button>
+      <!-- Filter pills -->
+      <div class="ctrl-pills">
+        <button type="button" class="pill active" data-filter="all" onclick="setFilter(this)">All</button>
+        <button type="button" class="pill" data-filter="low" onclick="setFilter(this)">Low Access</button>
+        <button type="button" class="pill" data-filter="high" onclick="setFilter(this)">High Access</button>
+        <button type="button" class="pill" data-filter="flagged" onclick="setFilter(this)">Flagged</button>
+      </div>
+
+      <div class="ctrl-sep"></div>
+
+      <!-- Hospital toggle -->
+      <button type="button" class="pill hosp-pill active" id="hosp-toggle" onclick="toggleHospitals()">Hospitals ●</button>
+
+      <!-- Zoom buttons (hidden on mobile via CSS) -->
+      <div class="ctrl-zoom-wrap" style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
+        <button type="button" class="ctrl-zoom-btn" onclick="goLA()">Los Angeles</button>
+        <button type="button" class="ctrl-zoom-btn" onclick="goCA()">All California</button>
+      </div>
     </div>
 
   </div><!-- /#control-bar -->
@@ -1062,23 +1207,54 @@
         return z === zip ? highlightStyle() : styleFor(f);
       });
       const d = S.data.get(zip);
-      renderZipPanel(zip, d);
-      const lyr = S.zipLayers.get(zip);
-      if (lyr) S.map.fitBounds(lyr.getBounds(), { padding: [60, 60], maxZoom: 13 });
+      const isMobile = window.innerWidth < 768;
+
+      if (isMobile) {
+        showMobileZipDrawer(zip, d);
+        // Zoom with smaller padding so the highlighted ZIP is visible above the drawer
+        const lyr = S.zipLayers.get(zip);
+        if (lyr) S.map.fitBounds(lyr.getBounds(), { paddingTopLeft: [20, 20], paddingBottomRight: [20, window.innerHeight * 0.45] });
+      } else {
+        renderZipPanel(zip, d);
+        const lyr = S.zipLayers.get(zip);
+        if (lyr) S.map.fitBounds(lyr.getBounds(), { padding: [60, 60], maxZoom: 13 });
+      }
       hideTip();
     }
 
     function returnToViewport() {
       S.selectedZip = null;
       S.geoLayer.setStyle(styleFor);
+      closeMobileZipDrawer(false); // close without calling returnToViewport again
       updateViewportPanel();
     }
 
-    // ─ ZIP panel ─
-    function renderZipPanel(zip, d) {
+    // ─ Shared ZIP detail HTML builder ─
+    // ── Safety modal ──
+    function checkSafetyModal() {
+      if (localStorage.getItem('sas_safety_v1') !== '1') {
+        document.getElementById('safety-overlay').classList.add('visible');
+      }
+    }
+    function dismissSafetyModal() {
+      localStorage.setItem('sas_safety_v1', '1');
+      const el = document.getElementById('safety-overlay');
+      el.style.transition = 'opacity .25s';
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.classList.remove('visible');
+        el.style.opacity = '';
+        el.style.transition = '';
+      }, 260);
+    }
+    // Show modal immediately on first visit (appears on top of loading overlay)
+    document.addEventListener('DOMContentLoaded', checkSafetyModal);
+
+    // ── ZIP detail HTML builder ──
+    function buildZipDetailHTML(zip, d) {
       const score = d?.sas_score ?? null;
       const color = sasColor(score);
-      const tier = scoreTier(score);
+      const tier  = scoreTier(score);
       const flags = [];
       if (d?.double_jeopardy_flag === 1) {
         flags.push('<span class="ftag ftag-djf">Double Jeopardy</span>');
@@ -1087,7 +1263,7 @@
         if (d?.clinical_risk_flag === 1) flags.push('<span class="ftag ftag-crf">CRF</span>');
       }
 
-      const drives = S.zipDrives.get(zip) || [];
+      const drives  = S.zipDrives.get(zip) || [];
       const hospRows = drives.slice(0, 10).map((e, i) => {
         const h = S.hospitals.get(e.facility_id);
         if (!h) return '';
@@ -1100,28 +1276,67 @@
         </div>`;
       }).join('');
 
+      return `
+        <div style="background:#8b0000;color:#fff;padding:10px 14px;margin-bottom:14px;
+                    font-size:.82rem;line-height:1.55;flex-shrink:0">
+          <strong>In a stroke emergency, call 911 immediately.</strong>
+          Always follow EMS guidance.
+        </div>
+        <div style="font-family:'Roboto Slab',serif;font-size:2.6rem;line-height:1;color:${color}">${score !== null ? score.toFixed(0) : '—'}</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:${color};margin-bottom:8px">${tier}</div>
+        ${flags.length ? '<div class="flag-tags" style="margin-bottom:8px">' + flags.join('') + '</div>' : ''}
+        <div class="panel-section">
+          <span class="section-label">Demographics</span>
+          ${dbar('% Hispanic', d?.pct_hispanic, 100)}
+          ${dbar('% Black', d?.pct_black_nh, 100)}
+          ${dbar('% White', d?.pct_white_nh, 100)}
+          ${dbar('Below poverty', d?.pct_below_poverty, 50)}
+          ${dbarIncome('Median income', d?.median_hh_income)}
+        </div>
+        <div class="panel-section" style="padding:0">
+          <div style="padding:12px 0 0"><span class="section-label" style="padding:0 18px">Nearby Hospitals (${drives.length})</span></div>
+          ${hospRows || '<p style="font-size:.82rem;color:#999;padding:8px 18px">No drive times available</p>'}
+        </div>`;
+    }
+
+    // ─ Desktop right panel ─
+    function renderZipPanel(zip, d) {
       document.getElementById('panel-body').innerHTML = `
         <div class="panel-header">
           <button type="button" class="panel-back" onclick="returnToViewport()">← Back to view</button>
           <div class="panel-title">ZIP ${zip}</div>
         </div>
-        <div class="panel-inner">
-          <div style="font-family:'Roboto Slab',serif;font-size:3rem;line-height:1;color:${color}">${score !== null ? score.toFixed(0) : '—'}</div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:${color};margin-bottom:8px">${tier}</div>
-          ${flags.length ? '<div class="flag-tags">' + flags.join('') + '</div>' : ''}
-          <div class="panel-section">
-            <span class="section-label">Demographics</span>
-            ${dbar('% Hispanic', d?.pct_hispanic, 100)}
-            ${dbar('% Black', d?.pct_black_nh, 100)}
-            ${dbar('% White', d?.pct_white_nh, 100)}
-            ${dbar('Below poverty', d?.pct_below_poverty, 50)}
-            ${dbarIncome('Median income', d?.median_hh_income)}
-          </div>
-          <div class="panel-section" style="padding:0">
-            <div style="padding:12px 0 0"><span class="section-label" style="padding:0 18px">Nearby Hospitals (${drives.length})</span></div>
-            ${hospRows || '<p style="font-size:.82rem;color:#999;padding:8px 18px">No drive times available</p>'}
-          </div>
-        </div>`;
+        <div class="panel-inner">${buildZipDetailHTML(zip, d)}</div>`;
+    }
+
+    // ─ Mobile ZIP drawer ─
+    function showMobileZipDrawer(zip, d) {
+      const el = document.getElementById('mobile-zip-drawer');
+      const overlay = document.getElementById('mobile-zip-overlay');
+      const content = document.getElementById('mobile-zip-content');
+
+      content.innerHTML = `
+        <div style="margin-bottom:4px">
+          <span style="font-family:'Roboto Slab',serif;font-size:1.5rem;color:var(--navy);font-weight:700">ZIP ${zip}</span>
+        </div>
+        ${buildZipDetailHTML(zip, d)}`;
+
+      overlay.classList.add('open');
+      el.style.display = 'block';
+      // Force reflow so the browser registers the translateY(100%) starting position
+      // before we add .open (which transitions to translateY(0))
+      void el.offsetHeight;
+      el.classList.add('open');
+    }
+
+    function closeMobileZipDrawer(callReturnToViewport = true) {
+      const el      = document.getElementById('mobile-zip-drawer');
+      const overlay = document.getElementById('mobile-zip-overlay');
+      if (!el) return;
+      el.classList.remove('open');
+      overlay.classList.remove('open');
+      setTimeout(() => { el.style.display = 'none'; }, 320);
+      if (callReturnToViewport && S.selectedZip) returnToViewport();
     }
 
     function dbar(label, val, max) {
@@ -1488,6 +1703,16 @@
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
+
+  <!-- ── Mobile ZIP detail drawer ── -->
+  <div id="mobile-zip-overlay" onclick="closeMobileZipDrawer()"></div>
+  <div id="mobile-zip-drawer" role="dialog" aria-modal="true" aria-label="ZIP details">
+    <div class="mzd-topbar">
+      <div class="mzd-handle"></div>
+      <button type="button" class="mzd-close" onclick="closeMobileZipDrawer()" aria-label="Close">×</button>
+    </div>
+    <div id="mobile-zip-content"></div>
+  </div>
 
   <!-- ── Floating menus (body-level so overflow:auto on control-bar can't clip them) ── -->
   <div class="ctrl-dd-menu" id="view-menu">
