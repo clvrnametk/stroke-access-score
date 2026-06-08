@@ -785,11 +785,11 @@
 
   <!-- Nav -->
   <nav>
-    <a href="index.html" class="nav-logo">Stroke Access Score</a>
+    <a href="/" class="nav-logo">Stroke Access Score</a>
     <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="map.html" class="active">Map</a>
-      <a href="about.html">About</a>
+      <a href="/">Home</a>
+      <a href="/map" class="active">Map</a>
+      <a href="/about">About</a>
     </div>
     <button type="button" class="hamburger" id="hamburger" aria-label="Open navigation" aria-expanded="false" onclick="toggleNav()">
       <span></span><span></span><span></span>
@@ -798,9 +798,9 @@
 
   <!-- Mobile nav drawer -->
   <div id="nav-drawer">
-    <a href="index.html" onclick="closeNav()">Home</a>
-    <a href="map.html" class="active" onclick="closeNav()">Map</a>
-    <a href="about.html" onclick="closeNav()">About</a>
+    <a href="/" onclick="closeNav()">Home</a>
+    <a href="/map" class="active" onclick="closeNav()">Map</a>
+    <a href="/about" onclick="closeNav()">About</a>
   </div>
 
   <!-- Control Bar -->
@@ -916,9 +916,9 @@
     async function loadData() {
       const [gr, cr, hr, dr] = await Promise.all([
         fetch('./ca_zip_simplified.geojson'),
-        fetch('../data/ca_zip_scores.csv'),
-        fetch('../data/ca_hospitals.json'),
-        fetch('../data/drive_time_cache.json'),
+        fetch('./ca_zip_scores.csv'),
+        fetch('./ca_hospitals.json'),
+        fetch('./drive_time_cache.json'),
       ]);
       if (!gr.ok) throw new Error('GeoJSON ' + gr.status);
       if (!cr.ok) throw new Error('CSV ' + cr.status);
