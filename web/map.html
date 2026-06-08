@@ -16,8 +16,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --navy: #0f0f3c;
@@ -25,16 +26,42 @@
       --bg: #f5f4f8;
       --text: #3c3c5a;
       --divider: #e0e0ec;
+      --r-card: 24px;
+      --r-btn: 999px;
+      --r-sm: 12px;
     }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      font-family: 'Roboto', sans-serif;
-      color: var(--text);
+    html, body { margin: 0; padding: 0; overflow-x: hidden; max-width: 100%; }
+    body { font-family: 'Roboto', sans-serif; color: var(--text); }
+
+    /* Map shell: fixed to fill viewport below the nav bar.
+       position:fixed bypasses any parent/iframe height-0 issues. */
+    #map-shell {
+      position: fixed;
+      top: 56px;               /* below nav */
+      left: 0; right: 0; bottom: 0;
+      z-index: 0;
     }
+    #map-area {
+      position: absolute;
+      inset: 0;
+    }
+    #map { width: 100%; height: 100%; background: #e8eaf0; }
+
+    /* In disparity view, findings section scrolls OVER the fixed map.
+       It has a background so the map is hidden when scrolled. */
+    #findings-section {
+      position: relative;
+      z-index: 5;
+    }
+    body.view-disparity #findings-section {
+      display: block;
+      margin-top: calc(100vh - 56px);  /* push findings below map area */
+    }
+    body.view-community #findings-section { display: none; }
+
+    body.view-disparity #map-area { height: calc(100vh - 56px); }
+    body.view-disparity #findings-section { display: block; }
 
     /* ── Nav ── */
     nav {
@@ -47,7 +74,6 @@
       display: flex;
       align-items: center;
       padding: 0 20px;
-      gap: 0;
     }
     .nav-logo {
       font-family: 'Roboto Slab', serif;
@@ -60,7 +86,6 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 0;
       margin-left: 32px;
     }
     .nav-links a {
@@ -120,393 +145,418 @@
     #nav-drawer a:hover,
     #nav-drawer a.active { color: #fff; background: rgba(255,255,255,.07); }
 
-    /* ── Control Bar ── */
-    #control-bar {
-      min-height: 52px;
-      position: sticky;
-      top: 56px;
-      z-index: 400;
-      background: #fff;
-      border-bottom: 1px solid var(--divider);
+    /* ── View Switcher ── */
+    #view-switcher {
+      position: absolute;
+      top: 16px;             /* matches the 16px gap between toggle and search bar */
+      left: 0;
+      right: 0;
+      z-index: 450;
       display: flex;
-      align-items: center;
-      gap: 8px;
+      justify-content: flex-start;
       padding: 0 16px;
-      overflow-x: auto;
-      white-space: nowrap;
-      flex-shrink: 0;
+      pointer-events: none;
     }
-    /* Filters sub-row — scrollable group on desktop too */
-    .ctrl-filters-row {
+    .seg-control {
+      pointer-events: all;
       display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-      min-width: 0;
-      overflow-x: auto;
-      white-space: nowrap;
-      scrollbar-width: none;
+      background: rgba(255,255,255,.95);
+      border-radius: var(--r-btn);
+      padding: 4px;
+      gap: 2px;
+      width: min(380px, calc(100% - 32px));  /* match search bar width */
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
     }
-    .ctrl-filters-row::-webkit-scrollbar { display: none; }
-
-    /* View dropdown */
-    .ctrl-dd { position: relative; flex-shrink: 0; }
-    .ctrl-dd-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      height: 36px;
-      padding: 0 12px;
-      border: 1.5px solid var(--navy);
-      background: #fff;
-      color: var(--navy);
-      font-family: 'Roboto', sans-serif;
-      font-size: .84rem;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .ctrl-dd-btn:hover,
-    .ctrl-dd-btn.open { background: var(--navy); color: #fff; }
-    .chevron { transition: transform .15s; }
-    .ctrl-dd-btn.open .chevron { transform: rotate(180deg); }
-    /* Menus are lifted to <body> level and use position:fixed so the
-       control-bar's overflow-x:auto cannot clip them. */
-    .ctrl-dd-menu {
-      display: none;
-      position: fixed;
-      background: #fff;
-      border: 1.5px solid var(--navy);
-      min-width: 190px;
-      z-index: 1200;
-      box-shadow: 2px 4px 12px rgba(0,0,0,.15);
-    }
-    .ctrl-dd-menu.open { display: block; }
-    .ctrl-menu-item {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 9px 14px;
-      font-size: .84rem;
-      font-family: 'Roboto', sans-serif;
-      background: none;
+    .seg-btn {
+      border-radius: var(--r-btn);
+      padding: 8px 0;
+      flex: 1;                     /* each button takes equal share of the control width */
+      text-align: center;
       border: none;
-      color: var(--text);
+      background: transparent;
+      color: var(--navy);
       cursor: pointer;
-      border-left: 3px solid transparent;
-    }
-    .ctrl-menu-item:hover { background: var(--bg); }
-    .ctrl-menu-item.active { border-left-color: var(--pink); font-weight: 500; color: var(--navy); }
-
-    /* Pills */
-    .ctrl-pills { display: flex; gap: 4px; flex-shrink: 0; }
-    .pill {
-      height: 34px;
-      padding: 0 12px;
-      border: 1.5px solid #9999aa;
-      background: #fff;
-      color: #555;
       font-family: 'Roboto', sans-serif;
-      font-size: .8rem;
+      font-size: .88rem;
       font-weight: 500;
-      cursor: pointer;
+      transition: all .2s;
       white-space: nowrap;
+      min-height: 36px;
     }
-    .pill:hover { background: #555; border-color: #555; color: #fff; }
-    .pill.active { background: #555; border-color: #555; color: #fff; }
-    .hosp-pill { border-color: var(--navy); color: var(--navy); }
-    .hosp-pill:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
-    .hosp-pill.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .seg-btn.active { background: var(--navy); color: #fff; }
+    .seg-btn:not(.active):hover { background: rgba(15,15,60,.07); }
 
-    /* Separator */
-    .ctrl-sep { width: 1px; height: 24px; background: var(--divider); flex-shrink: 0; }
+    /* ── Map Shell & Area ── */
+    /* map-shell, map-area, #map layout defined above — no overrides here */
 
-    /* Search */
-    .ctrl-search {
-      position: relative;
-      flex: 0 1 240px;
-      min-width: 120px;
+    /* ── Search bar ── */
+    /* Search bar — left-aligned, Google Maps style */
+    #search-wrap {
+      position: absolute;
+      top: 80px;   /* 16px + 48px switcher height + 16px gap */
+      left: 16px;
+      width: min(380px, calc(100% - 32px));
+      z-index: 800;
+      background: #fff;
+      border-radius: var(--r-btn);
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
       display: flex;
       align-items: center;
-      border: 1.5px solid #9999aa;
-      background: #fff;
-      height: 36px;
-      padding: 0 10px;
-      gap: 7px;
+      height: 48px;
+      padding: 0 8px 0 16px;
+      gap: 8px;
+      border: 1px solid var(--divider);
+      transition: width .25s ease;
     }
-    .ctrl-search:focus-within { border-color: var(--navy); }
+    body.view-disparity #search-wrap { display: none !important; }
     #search-input {
       flex: 1;
       border: none;
       outline: none;
       background: transparent;
       font-family: 'Roboto', sans-serif;
-      font-size: .84rem;
+      font-size: .95rem;
       color: var(--text);
       min-width: 0;
     }
     #search-input::placeholder { color: #bbb; }
-    .search-results {
-      display: none;
-      position: fixed;
-      background: #fff;
-      border: 1.5px solid var(--navy);
-      z-index: 1200;
-      box-shadow: 2px 4px 12px rgba(0,0,0,.15);
-      max-height: 320px;
-      overflow-y: auto;
-    }
-    .search-results.open { display: block; }
-    /* Search submit button */
+    /* When a ZIP is selected: input shows area name, Search → × */
+    #search-wrap.zip-selected { cursor: default; }
+    #search-wrap.zip-selected #search-input { font-weight: 500; color: var(--navy); cursor: default; }
     #search-btn {
-      flex-shrink: 0; border: none; background: var(--navy); color: #fff;
-      width: 28px; height: 28px; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; margin-right: -4px;
+      flex-shrink: 0; border: none;
+      background: var(--navy); color: #fff;
+      border-radius: var(--r-btn); padding: 0 16px; height: 36px;
+      font-family: 'Roboto', sans-serif; font-size: .84rem; font-weight: 500; cursor: pointer;
     }
     #search-btn:hover { background: #1a1a5c; }
-    /* Typeahead category label */
-    .sr-group {
-      padding: 5px 14px 3px;
-      font-size: 9px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.5px; color: var(--pink); background: #fafafa;
-      border-bottom: 1px solid var(--divider);
+    /* Clear/close button inside search bar (shown only when ZIP selected) */
+    #search-clear {
+      display: none; flex-shrink: 0; background: none;
+      border: 1px solid var(--divider); border-radius: 50%;
+      width: 28px; height: 28px; cursor: pointer;
+      font-size: 1rem; align-items: center; justify-content: center; color: #666;
     }
-    .sr-item-zip { display: flex; align-items: center; gap: 10px; }
-    .sr-zip-dot { width: 8px; height: 8px; flex-shrink: 0; }
-    .sr-zip-score { font-weight: 700; font-size: .8rem; margin-left: auto; flex-shrink: 0; }
-    .sr-item.focused { background: var(--bg); outline: none; }
-    .sr-item {
-      padding: 8px 14px;
-      font-size: .83rem;
-      cursor: pointer;
-      border-bottom: 1px solid var(--divider);
-    }
-    .sr-item:last-child { border-bottom: none; }
-    .sr-item:hover { background: var(--bg); }
-    .sr-sub {
-      font-size: .73rem;
-      color: #999;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    #search-clear:hover { background: var(--bg); }
+    #search-wrap.zip-selected #search-btn   { display: none; }
+    #search-wrap.zip-selected #search-clear { display: flex; }
 
-    /* Zoom buttons */
-    .ctrl-zoom-btn {
-      height: 34px;
-      padding: 0 12px;
-      border: 1.5px solid var(--navy);
-      background: #fff;
-      color: var(--navy);
-      font-family: 'Roboto', sans-serif;
-      font-size: .8rem;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .ctrl-zoom-btn:hover { background: var(--navy); color: #fff; }
-
-    /* ── Map Content ── */
-    #map-content {
-      flex: 1;
+    /* ── Zoom controls ── */
+    #zoom-controls {
+      position: absolute;
+      right: 16px;
+      bottom: 80px;
+      z-index: 800;
       display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: var(--r-sm);
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
       overflow: hidden;
-      min-height: 0;
     }
-    #map-area {
-      flex: 1;
-      position: relative;
-      min-width: 0;
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: #fff;
+      cursor: pointer;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--navy);
     }
-    #map {
-      width: 100%;
-      height: 100%;
+    .zoom-btn:hover { background: var(--bg); }
+    .zoom-divider { height: 1px; background: var(--divider); margin: 0 6px; }
+
+    /* ── Region toggle ── */
+    #region-toggle {
+      position: absolute;
+      bottom: 28px;
+      left: 16px;
+      z-index: 800;
+      display: flex;
+      background: #fff;
+      border-radius: var(--r-btn);
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      padding: 4px;
+      gap: 2px;
+    }
+    #region-toggle.hidden { display: none; }
+
+    /* ── Compact Legend ── */
+    #map-legend {
+      position: absolute;
+      bottom: 28px;
+      right: 16px;
+      z-index: 800;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      padding: 10px 14px;
+      min-width: 130px;
+    }
+    #map-legend.hidden { display: none; }
+    .legend-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--pink);
+      margin-bottom: 8px;
+      display: block;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+      font-size: .78rem;
+      color: var(--text);
+    }
+    .legend-item:last-child { margin-bottom: 0; }
+    .leg-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
-    /* Tooltip */
+    /* ── Tooltip ── */
     #tip {
       position: absolute;
       pointer-events: none;
       z-index: 800;
       display: none;
       background: #fff;
-      border: 1px solid var(--navy);
-      padding: 8px 11px;
+      border-radius: 10px;
+      padding: 8px 12px;
       font-size: .8rem;
-      max-width: 220px;
-      box-shadow: 2px 2px 8px rgba(0,0,0,.12);
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
       line-height: 1.4;
+      max-width: 200px;
     }
 
-    /* ── Right Panel ── */
-    #right-panel {
-      width: 340px;
-      border-left: 2px solid var(--navy);
-      flex-shrink: 0;
+    /* ── Detail overlay ── */
+    #detail-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.3);
+      z-index: 850;
+    }
+    #detail-overlay.open { display: block; }
+
+    /* ── Detail card — left side, beneath search bar, Google Maps style ── */
+    #detail-card {
+      position: absolute;
+      top: 136px;             /* 80px search-top + 48px height + 8px gap */
+      left: 16px;
+      width: 380px;
+      max-height: calc(100% - 152px);
+      background: #fff;
+      border-radius: var(--r-card);
+      box-shadow: 0 4px 24px rgba(0,0,0,.18);
+      overflow: hidden;            /* clips scrollbar to the rounded corners */
       display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      flex-direction: column;      /* child content fills height and can scroll */
+      z-index: 700;
+      transform: translateX(calc(-100% - 32px));
+      transition: transform .32s cubic-bezier(.4,0,.2,1);
     }
-    #panel-body {
-      flex: 1;
-      overflow-y: auto;
+    #detail-card.open { transform: translateX(0); }
+    /* flex:1 + min-height:0 lets overflow-y:auto actually scroll inside the capped card */
+    #detail-content { padding: 16px 20px 24px; overflow-y: auto; flex: 1; min-height: 0; }
+    .dc-drag-handle { display: none; }
+    /* Header row: area name left, × button right — compact, no separate close row */
+    .dc-header-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 8px; margin-bottom: 6px;
     }
-    #panel-legend {
-      flex-shrink: 0;
-      border-top: 2px solid var(--navy);
-      padding: 14px 16px 16px;
+    .dc-header-text { flex: 1; min-width: 0; }
+    /* Remove old standalone close row */
+    .dc-close-row { display: none; }
+    .dc-close {
+      background: none;
+      border: 1px solid var(--divider);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      line-height: 1;
     }
-
-    /* Section label */
-    .section-label {
+    .dc-close:hover { background: var(--bg); }
+    .callout-911 {
+      background: #8b0000; color: #fff;
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      margin: 14px 0;        /* top margin so it sits below the score, not at the top */
+      font-size: .82rem; line-height: 1.55;
+    }
+    .dc-area-name {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.3rem; color: var(--navy);
+      display: block; font-weight: 700; line-height: 1.2;
+    }
+    .dc-zip-sub {
+      font-size: .75rem; color: #999;
+      display: block; margin-top: 2px; margin-bottom: 10px;
+    }
+    /* Keep .dc-zip for backwards compat */
+    .dc-zip {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.5rem; color: var(--navy);
+      display: block; margin-bottom: 4px; font-weight: 700;
+    }
+    .dc-score {
+      font-family: 'Roboto Slab', serif;
+      font-size: 3rem;
       display: block;
+      line-height: 1;
+    }
+    .dc-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      display: block;
+      margin-bottom: 12px;
+    }
+    .dc-facility {
+      background: var(--bg);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      margin: 12px 0;
+    }
+    .fac-name-text {
+      font-weight: 500;
+      font-size: .88rem;
+      color: var(--navy);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .dc-fac-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .fac-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      background: var(--navy);   /* default — overridden by level classes below */
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: var(--r-btn);
+    }
+    /* Hospital certification level badge colors */
+    .fac-badge.csc  { background: #c0392b; }   /* CSC  — Comprehensive: red   */
+    .fac-badge.tsc  { background: #7c3aed; }   /* TSC  — Thrombectomy:  purple */
+    .fac-badge.psc  { background: #1d6fa4; }   /* PSC  — Primary:       blue   */
+    .fac-badge.asrh { background: #6b7280; }   /* ASRH — Ready:         grey   */
+    .fac-drive-text { font-size: .82rem; color: #666; }
+    .dc-interp {
+      font-size: .85rem;
+      color: var(--text);
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+    .dc-divider {
+      border: none;
+      border-top: 1px solid var(--divider);
+      margin: 14px 0;
+    }
+    .dc-section-label {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 2px;
       color: var(--pink);
-      margin-bottom: 6px;
-    }
-
-    /* Panel header */
-    .panel-header {
-      padding: 16px 18px 12px;
-      border-bottom: 1px solid var(--divider);
-    }
-    .panel-back {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: .8rem;
-      color: var(--pink);
-      font-weight: 500;
-      padding: 0;
       margin-bottom: 8px;
-      display: inline-block;
+      display: block;
     }
-    .panel-back:hover { text-decoration: underline; }
-    .panel-title {
-      font-family: 'Roboto Slab', serif;
-      font-size: 1.45rem;
-      color: var(--navy);
-      line-height: 1.2;
+    .flag-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .flag-pill {
+      padding: 4px 12px;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+      border-radius: var(--r-btn);
     }
-    .panel-subtitle { font-size: .82rem; color: #777; margin-top: 3px; }
+    .flag-pill.djf { background: #8b0000; }
+    .flag-pill.sev { background: var(--pink); }
+    .flag-pill.crf { background: #e67e22; }
 
-    /* Panel inner */
-    .panel-inner { padding: 14px 18px 24px; }
-    .panel-section {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid var(--divider);
-    }
-
-    /* Stat rows */
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--divider);
-      font-size: .85rem;
-    }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-row-label { color: #777; }
-    .stat-row-val { font-weight: 600; color: var(--navy); }
-
-    /* Demographics bars */
-    .dbar { margin-bottom: 9px; }
+    /* ── Demographics bars ── */
+    .dbar { margin-bottom: 8px; }
     .dbar-head {
       display: flex;
       justify-content: space-between;
       font-size: .78rem;
       margin-bottom: 3px;
     }
-    .dbar-track { height: 6px; background: var(--bg); }
-    .dbar-fill { height: 100%; }
+    .dbar-track { height: 5px; background: var(--bg); border-radius: var(--r-btn); }
+    .dbar-fill { height: 100%; border-radius: var(--r-btn); }
     .dbar-pink .dbar-fill { background: var(--pink); }
     .dbar-navy .dbar-fill { background: var(--navy); }
 
-    /* Hospital list items */
+    /* ── Hospital rows in detail card ── */
     .hosp-row {
-      padding: 9px 18px;
+      padding: 8px 0;
       border-bottom: 1px solid var(--divider);
       cursor: pointer;
       display: flex;
       align-items: flex-start;
-      gap: 10px;
+      gap: 8px;
     }
-    .hosp-row:hover { background: var(--bg); }
     .hosp-row:last-child { border-bottom: none; }
+    .hosp-row:hover {
+      background: var(--bg);
+      margin: 0 -20px;
+      padding: 8px 20px;
+      border-radius: 8px;
+    }
     .hosp-row-num {
-      font-size: .75rem;
+      font-size: .74rem;
       color: #aaa;
       font-weight: 500;
       padding-top: 2px;
-      min-width: 16px;
+      min-width: 14px;
     }
     .hosp-row-body { flex: 1; min-width: 0; }
-    .hosp-row-name { font-size: .85rem; font-weight: 500; line-height: 1.3; }
+    .hosp-row-name {
+      font-size: .84rem;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1.3;
+    }
     .hosp-row-meta {
-      font-size: .77rem;
-      color: #777;
+      font-size: .76rem;
+      color: #666;
       margin-top: 3px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    /* Flag tags */
-    .flag-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 4px; }
-    .ftag {
-      padding: 3px 9px;
-      font-size: .7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #fff;
-    }
-    .ftag-djf { background: #8b0000; }
-    .ftag-sev { background: var(--pink); }
-    .ftag-crf { background: #e67e22; }
-
-    /* Facility badge */
-    .fac-badge {
-      display: inline-block;
-      padding: 2px 7px;
-      background: var(--navy);
-      color: #fff;
-      font-size: .68rem;
-      font-weight: 700;
-      letter-spacing: .8px;
-      text-transform: uppercase;
+    /* ── Pulsing outline ── */
+    .zip-pulse-outline { animation: zip-pulse 1.4s ease-in-out infinite; }
+    @keyframes zip-pulse {
+      0%, 100% { stroke-width: 3; stroke-opacity: 1; }
+      50% { stroke-width: 5; stroke-opacity: .2; }
     }
 
-    /* Score dot */
-    .score-dot {
-      display: inline-block;
-      width: 9px;
-      height: 9px;
-      flex-shrink: 0;
-      margin-top: 3px;
-    }
-
-    /* Legend */
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
-      font-size: .79rem;
-    }
-    .legend-row:last-child { margin-bottom: 0; }
-    .legend-swatch {
-      width: 12px;
-      height: 12px;
-      flex-shrink: 0;
-      border: 1px solid rgba(0,0,0,.1);
-    }
-
-    /* ── Modal ── */
+    /* ── Hospital modal ── */
     #modal-overlay {
       display: none;
       position: fixed;
@@ -525,9 +575,10 @@
       width: min(520px, 90vw);
       max-height: 82vh;
       background: #fff;
-      border: 2px solid var(--navy);
+      border-radius: var(--r-card);
       overflow-y: auto;
       padding: 28px 28px 32px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.18);
     }
     #hospital-modal.open { display: block; }
     #modal-close {
@@ -536,6 +587,7 @@
       right: 12px;
       background: none;
       border: 1px solid var(--divider);
+      border-radius: 50%;
       width: 32px;
       height: 32px;
       cursor: pointer;
@@ -578,53 +630,81 @@
     .zip-row:hover { background: var(--bg); margin: 0 -28px; padding: 7px 28px; }
     .zip-row:last-child { border-bottom: none; }
     .zip-score { font-weight: 600; font-size: .82rem; }
+    .score-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
 
-    /* ── Loading ── */
-    /* ── Safety disclaimer modal ── */
+    /* ── Safety modal ── */
     #safety-overlay {
       display: none;
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background: rgba(0,0,0,.78);
-      z-index: 9100;          /* above the loading overlay (9000) */
-      align-items: center; justify-content: center;
+      z-index: 9100;
+      align-items: center;
+      justify-content: center;
       padding: 20px;
     }
     #safety-overlay.visible { display: flex; }
     #safety-modal {
       background: #fff;
-      border: 3px solid var(--navy);
-      max-width: 540px; width: 100%;
+      border-radius: var(--r-card);
+      max-width: 540px;
+      width: 100%;
       padding: clamp(24px,5vw,40px) clamp(20px,5vw,36px);
+      box-shadow: 0 4px 24px rgba(0,0,0,.18);
     }
     .sm-title {
-      font-family: 'Roboto Slab', serif; font-weight: 700;
-      font-size: clamp(1.5rem,4vw,2rem); color: var(--navy);
-      margin-bottom: 4px; line-height: 1.1;
+      font-family: 'Roboto Slab', serif;
+      font-size: clamp(1.5rem,4vw,2rem);
+      color: var(--navy);
+      margin-bottom: 4px;
     }
     .sm-subtitle {
-      display: block; font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 2px;
-      color: var(--pink); margin-bottom: 20px;
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--pink);
+      margin-bottom: 20px;
     }
     .sm-body {
-      font-size: .92rem; color: var(--text);
-      line-height: 1.65; margin-bottom: 16px;
+      font-size: .92rem;
+      color: var(--text);
+      line-height: 1.65;
+      margin-bottom: 16px;
     }
     .sm-warning {
-      font-size: .92rem; line-height: 1.6;
-      color: #8b0000; margin-bottom: 28px;
+      font-size: .92rem;
+      line-height: 1.6;
+      color: #8b0000;
+      margin-bottom: 28px;
       padding: 11px 14px;
       border-left: 4px solid #8b0000;
       background: rgba(139,0,0,.06);
+      border-radius: 0 8px 8px 0;
     }
     .sm-btn {
-      width: 100%; background: var(--navy); color: #fff;
-      border: 2px solid var(--navy); padding: 13px 0;
-      font-family: 'Roboto', sans-serif; font-size: .95rem;
-      font-weight: 500; cursor: pointer; letter-spacing: .3px;
+      width: 100%;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      padding: 13px 0;
+      font-family: 'Roboto', sans-serif;
+      font-size: .95rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--r-btn);
     }
-    .sm-btn:hover { background: #1a1a5c; border-color: #1a1a5c; }
+    .sm-btn:hover { background: #1a1a5c; }
 
+    /* ── Loading ── */
     #loading {
       position: fixed;
       inset: 0;
@@ -646,6 +726,7 @@
       border: 3px solid rgba(255,255,255,.2);
       border-top-color: var(--pink);
       animation: spin .8s linear infinite;
+      border-radius: 50%;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -671,88 +752,157 @@
       max-width: 600px;
       text-align: left;
       overflow-x: auto;
+      border-radius: 8px;
     }
 
-    /* ── Mobile ZIP drawer ── */
-    #mobile-zip-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.3); z-index: 850;
+    /* ── Search results ── */
+    .search-results {
+      display: none;
+      position: fixed;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--divider);
+      z-index: 1200;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      max-height: 280px;
+      overflow-y: auto;
     }
-    #mobile-zip-overlay.open { display: block; }
+    .search-results.open { display: block; }
+    .sr-group {
+      padding: 8px 14px 4px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--pink);
+      background: #fafafa;
+      border-bottom: 1px solid var(--divider);
+    }
+    .sr-item {
+      padding: 10px 16px;
+      font-size: .84rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--divider);
+    }
+    .sr-item:last-child { border-bottom: none; }
+    .sr-item:hover, .sr-item.focused { background: var(--bg); }
+    .sr-sub {
+      font-size: .73rem;
+      color: #999;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sr-item-zip { display: flex; align-items: center; gap: 8px; }
+    .sr-zip-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; }
+    .sr-zip-score { font-weight: 700; font-size: .8rem; margin-left: auto; flex-shrink: 0; }
 
-    #mobile-zip-drawer {
-      display: none; position: fixed;
-      bottom: 0; left: 0; right: 0; z-index: 900;
-      background: #fff; border-top: 3px solid var(--navy);
-      max-height: 62vh; overflow-y: auto;
-      transform: translateY(100%);
-      transition: transform .32s cubic-bezier(.4,0,.2,1);
+    /* ── Findings section ── */
+    #findings-section {
+      display: none;
+      background: var(--bg);
+      padding: 48px 24px 64px;
     }
-    #mobile-zip-drawer.open {
-      display: block; transform: translateY(0);
+    body.view-disparity #findings-section { display: block; }
+    .findings-inner { max-width: 1100px; margin: 0 auto; }
+    .findings-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--pink);
+      margin-bottom: 8px;
+      display: block;
     }
-    .mzd-topbar {
-      position: sticky; top: 0; z-index: 10;
-      background: #fff; display: flex; align-items: center;
-      padding: 10px 16px 8px; border-bottom: 1px solid var(--divider);
-      gap: 10px;
+    .findings-headline {
+      font-family: 'Roboto Slab', serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      color: var(--navy);
+      margin-bottom: 32px;
     }
-    .mzd-handle {
-      width: 36px; height: 4px; background: #ddd; flex-shrink: 0; margin: 0 auto;
+    .findings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
-    .mzd-close {
-      margin-left: auto; background: none; border: 1px solid var(--divider);
-      width: 32px; height: 32px; flex-shrink: 0; cursor: pointer;
-      font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+    .finding-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
     }
-    .mzd-close:hover { background: var(--bg); }
-    #mobile-zip-content { padding: 14px 16px 32px; }
+    .fc-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--pink);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .fc-stat {
+      font-family: 'Roboto Slab', serif;
+      font-size: 2.2rem;
+      color: var(--navy);
+      line-height: 1;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .fc-text { font-size: .88rem; color: var(--text); line-height: 1.6; }
+
+    /* ── Leaflet overrides ── */
+    .leaflet-container { font-family: 'Roboto', sans-serif; }
+    .leaflet-control-zoom { display: none; }
+    .hosp-tooltip {
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,.1);
+      font-family: 'Roboto', sans-serif;
+      font-size: .8rem;
+      padding: 6px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    .hosp-tooltip::before { display: none; }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      #right-panel { display: none; }
-      #map-content { position: relative; }
-      .hamburger { display: flex; }
       .nav-links { display: none; }
-
-      /* Stack control bar: search on top, filters scrollable below */
-      #control-bar {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 8px 12px;
-        gap: 6px;
-        overflow-x: visible;
-        white-space: normal;
-      }
-      /* Search box: full width on top */
-      .ctrl-search {
-        flex: none;
+      .hamburger { display: flex; }
+      #detail-card {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
         width: 100%;
-        max-width: none;
-        min-width: 0;
-        order: -1;
-        height: 40px;
+        height: 56vh;
+        border-radius: 24px 24px 0 0;
+        transform: translateY(100%);
       }
-      /* Filters row: scrollable second line */
-      .ctrl-filters-row {
-        display: flex;
-        gap: 6px;
-        overflow-x: auto;
-        white-space: nowrap;
-        scrollbar-width: none;
-        padding-bottom: 2px;
-        align-items: center;
+      #detail-card.open { transform: translateY(0); }
+      .dc-drag-handle {
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: #ddd;
+        border-radius: var(--r-btn);
+        margin: 10px auto 6px;
       }
-      .ctrl-filters-row::-webkit-scrollbar { display: none; }
-      /* Hide zoom buttons on mobile (use search instead) */
-      .ctrl-zoom-wrap { display: none; }
+      #search-wrap { width: calc(100% - 32px); left: 16px; transform: none; }
+      #region-toggle { bottom: 16px; left: 8px; }
+      #map-legend { bottom: 16px; right: 8px; }
+      #zoom-controls { bottom: 70px; right: 8px; }
+      .findings-grid { grid-template-columns: 1fr; }
+      #view-switcher { padding: 6px 12px; }   /* minimal top/bottom padding on mobile */
+      .seg-btn { padding: 7px 14px; font-size: .82rem; }
     }
-    /* On mobile the flex chain handles map height — no fixed override needed */
+    @media (max-width: 480px) {
+      #findings-section { padding: 32px 16px 48px; }
+    }
   </style>
 </head>
-<body>
+<body class="view-community">
 
-  <!-- Safety disclaimer modal (z-index above loading overlay) -->
+  <!-- Safety disclaimer modal -->
   <div id="safety-overlay" role="dialog" aria-modal="true" aria-labelledby="sm-title">
     <div id="safety-modal">
       <h1 class="sm-title" id="sm-title">Stroke Access Score</h1>
@@ -803,78 +953,93 @@
     <a href="/about" onclick="closeNav()">About</a>
   </div>
 
-  <!-- Control Bar -->
-  <div id="control-bar">
+  <!-- Map shell -->
+  <div id="map-shell">
 
-    <!-- Search (top row on mobile, inline on desktop) -->
-    <div class="ctrl-search" id="search-wrap">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0;color:#999">
-        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
-      </svg>
-      <input id="search-input" type="text" placeholder="Search ZIP, city, or address…" autocomplete="off">
-      <button type="button" id="search-btn" onclick="submitSearch()" aria-label="Search">
-        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.8"/>
-          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"/>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Filters row: view dropdown + pills + hospital toggle + zoom (scrollable on mobile) -->
-    <div class="ctrl-filters-row">
-      <!-- View dropdown (menu lifted to body below) -->
-      <div class="ctrl-dd" id="view-dd">
-        <button type="button" class="ctrl-dd-btn" id="view-btn" onclick="toggleViewDd()">
-          <span id="view-label">SAS Score</span>
-          <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
-            <path d="M0 0l5 6 5-6z"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Filter pills -->
-      <div class="ctrl-pills">
-        <button type="button" class="pill active" data-filter="all" onclick="setFilter(this)">All</button>
-        <button type="button" class="pill" data-filter="low" onclick="setFilter(this)">Low Access</button>
-        <button type="button" class="pill" data-filter="high" onclick="setFilter(this)">High Access</button>
-        <button type="button" class="pill" data-filter="flagged" onclick="setFilter(this)">Flagged</button>
-      </div>
-
-      <div class="ctrl-sep"></div>
-
-      <!-- Hospital toggle -->
-      <button type="button" class="pill hosp-pill active" id="hosp-toggle" onclick="toggleHospitals()">Hospitals ●</button>
-
-      <!-- Zoom buttons (hidden on mobile via CSS) -->
-      <div class="ctrl-zoom-wrap" style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
-        <button type="button" class="ctrl-zoom-btn" onclick="goLA()">Los Angeles</button>
-        <button type="button" class="ctrl-zoom-btn" onclick="goCA()">All California</button>
-      </div>
-    </div>
-
-  </div><!-- /#control-bar -->
-
-  <!-- Map Content -->
-  <div id="map-content">
-
-    <!-- Map Area -->
+    <!-- Map area — all floating UI lives inside here -->
     <div id="map-area">
       <div id="map"></div>
+
+      <!-- View switcher: floats at top-center of the map -->
+      <div id="view-switcher">
+        <div class="seg-control">
+          <button type="button" class="seg-btn active" data-view="community" onclick="switchView('community')">My Community</button>
+          <button type="button" class="seg-btn" data-view="disparity" onclick="switchView('disparity')">The Disparity</button>
+        </div>
+      </div>
+
+      <!-- Search bar (community only) -->
+      <div id="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0;color:#999">
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+        </svg>
+        <input id="search-input" type="text" placeholder="Enter a ZIP code" autocomplete="off">
+        <button type="button" id="search-btn" onclick="submitSearch()">Search</button>
+        <button type="button" id="search-clear" onclick="returnToViewport()" aria-label="Clear selection">×</button>
+      </div>
+
+      <!-- Zoom controls -->
+      <div id="zoom-controls">
+        <button type="button" class="zoom-btn" onclick="S.map.zoomIn()">+</button>
+        <div class="zoom-divider"></div>
+        <button type="button" class="zoom-btn" onclick="S.map.zoomOut()">−</button>
+      </div>
+
+      <!-- Region toggle (disparity only) -->
+      <div id="region-toggle" class="hidden">
+        <button type="button" class="seg-btn active" id="btn-la" onclick="setRegion('la',this)">Los Angeles</button>
+        <button type="button" class="seg-btn" id="btn-ca" onclick="setRegion('ca',this)">All California</button>
+      </div>
+
+      <!-- Compact legend (disparity only) -->
+      <div id="map-legend" class="hidden">
+        <div class="legend-title">Score</div>
+        <div class="legend-item"><span class="leg-dot" style="background:#27ae60"></span>Strong (70–100)</div>
+        <div class="legend-item"><span class="leg-dot" style="background:#f1c40f"></span>Moderate (40–69)</div>
+        <div class="legend-item"><span class="leg-dot" style="background:#c0392b"></span>Limited (0–39)</div>
+        <div class="legend-item"><span class="leg-dot" style="background:#cccccc"></span>No data</div>
+      </div>
+
+      <!-- Hover tooltip -->
       <div id="tip"></div>
-    </div>
 
-    <!-- Right Panel -->
-    <div id="right-panel">
-      <div id="panel-body">
-        <!-- Populated by JS -->
+      <!-- Detail card -->
+      <div id="detail-card" role="region" aria-label="ZIP details">
+        <div id="detail-content"></div>
       </div>
-      <div id="panel-legend">
-        <!-- Populated by JS -->
-      </div>
-    </div>
 
-  </div><!-- /#map-content -->
+    </div><!-- /#map-area -->
+
+    <!-- Findings section (disparity only, below map) -->
+    <section id="findings-section">
+      <div class="findings-inner">
+        <span class="findings-eyebrow">Key Findings</span>
+        <h2 class="findings-headline">The geography of stroke care inequality in California</h2>
+        <div class="findings-grid">
+          <div class="finding-card">
+            <span class="fc-label">Income &amp; Access</span>
+            <span class="fc-stat" id="f-income-gap">—</span>
+            <p class="fc-text">Average score difference between top and bottom income quartile ZIP codes. Wealthier areas have consistently better proximity to certified stroke centers.</p>
+          </div>
+          <div class="finding-card">
+            <span class="fc-label">Racial Disparity</span>
+            <span class="fc-stat" id="f-racial-gap">—</span>
+            <p class="fc-text">Average score gap between non-majority-minority and majority-minority ZIP codes. Communities of color face lower access to stroke care.</p>
+          </div>
+          <div class="finding-card">
+            <span class="fc-label">Population at Risk</span>
+            <span class="fc-stat" id="f-risk-pop">—</span>
+            <p class="fc-text" id="f-risk-detail">Facing both poor access scores and elevated stroke risk factors including age and concentrated poverty.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /#map-shell -->
+
+  <!-- Detail overlay (mobile) -->
+  <div id="detail-overlay" onclick="closeDetailCard(); returnToViewport();"></div>
 
   <!-- Modal overlay -->
   <div id="modal-overlay" onclick="closeHospitalModal()"></div>
@@ -887,6 +1052,9 @@
     </div>
   </div>
 
+  <!-- Search results (body-level for positionBelow) -->
+  <div class="search-results" id="search-results"></div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -895,9 +1063,10 @@
       view: 'sas',
       filter: 'all',
       selectedZip: null,
+      currentPageView: 'community',
       data: new Map(),
       geoLayer: null,
-      hospitalLayer: null,   // assigned in initHospitalLayer() after L is confirmed ready
+      hospitalLayer: null,
       hospitalMarkerMap: new Map(),
       hospitalMarkersVisible: true,
       map: null,
@@ -910,6 +1079,7 @@
       zipDrives: new Map(),
       hospitalDrives: new Map(),
       hospitals: new Map(),
+      caStats: { avgScore: 73, avgIncome: 82000, mmPct: 48 },  // populated by calcCAStats()
     };
 
     // ─ Data loading ─
@@ -1119,7 +1289,7 @@
           });
 
           lyr.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);  // prevent base map click from firing returnToViewport()
+            L.DomEvent.stopPropagation(e);
             selectZip(zip);
           });
         }
@@ -1140,20 +1310,34 @@
 
       // Clicking empty map space deselects the active ZIP
       map.on('click', () => { if (S.selectedZip) returnToViewport(); });
-      // Panning/zooming updates viewport stats (only when no ZIP is selected)
-      map.on('moveend', () => { if (!S.selectedZip) updateViewportPanel(); });
+    }
+
+    // Certification level → pin color (used for both map markers and badges)
+    function levelColor(level) {
+      switch ((level || '').toUpperCase()) {
+        case 'CSC':  return '#c0392b';  // red    — Comprehensive
+        case 'TSC':  return '#7c3aed';  // purple — Thrombectomy
+        case 'PSC':  return '#1d6fa4';  // blue   — Primary
+        case 'ASRH': return '#6b7280';  // grey   — Acute Stroke Ready
+        default:     return '#0f0f3c';
+      }
+    }
+    // CSS class name for level badge
+    function levelClass(level) {
+      return (level || '').toLowerCase().replace(/[^a-z]/g, '');
     }
 
     function initHospitalLayer() {
-      S.hospitalLayer = L.layerGroup();  // safe to call here — L is guaranteed loaded
+      S.hospitalLayer = L.layerGroup();
       S.hospitals.forEach((h, fid) => {
         if (!h.lat || !h.lon) return;
+        const pinColor = levelColor(h.stroke_level);
         const m = L.circleMarker([h.lat, h.lon], {
-          radius: 7,
-          fillColor: '#0f0f3c',
+          radius: h.stroke_level === 'CSC' ? 9 : 7,  // CSC pins slightly larger
+          fillColor: pinColor,
           color: '#ffffff',
           weight: 2,
-          fillOpacity: 0.9
+          fillOpacity: 0.92
         });
         m.on('mouseover', e => showTip(e, `<strong>${h.facility_name}</strong><br><span style="font-size:.75rem;color:#555">${h.stroke_level} · ${h.city}</span>`));
         m.on('mouseout', hideTip);
@@ -1169,190 +1353,184 @@
       const t = document.getElementById('tip');
       t.innerHTML = html;
       t.style.display = 'block';
-      const cp = e.containerPoint;
-      t.style.left = (cp.x + 14) + 'px';
-      t.style.top = (cp.y - 12) + 'px';
+
+      const cp      = e.containerPoint;
+      const mapEl   = document.getElementById('map');
+      const mapRect = mapEl.getBoundingClientRect();
+      const tW      = t.offsetWidth  || 200;
+      const tH      = t.offsetHeight || 60;
+      const margin  = 8;
+
+      // Default: right + below cursor
+      let x = cp.x + 14;
+      let y = cp.y - 12;
+
+      // Clamp so tooltip never exits the map container
+      if (x + tW + margin > mapRect.width)  x = cp.x - tW - 10;   // flip left
+      if (y + tH + margin > mapRect.height) y = cp.y - tH - 10;   // flip above
+      if (x < margin) x = margin;
+      if (y < margin) y = margin;
+
+      t.style.left = x + 'px';
+      t.style.top  = y + 'px';
     }
     function hideTip() { document.getElementById('tip').style.display = 'none'; }
 
-    // ─ Viewport panel ─
-    function updateViewportPanel() {
-      const bounds = S.map.getBounds();
-      const vis = [...S.data.values()].filter(d => d.pw_centroid_lat != null && bounds.contains([d.pw_centroid_lat, d.pw_centroid_lon]));
-      const scored = vis.filter(d => d.sas_score !== null);
-      const low = scored.filter(d => d.sas_score < 40);
-      const mm = vis.filter(d => d.is_majority_minority === 1);
-      const djf = vis.filter(d => d.double_jeopardy_flag === 1);
-      const avgScore = scored.length ? scored.reduce((s, d) => s + d.sas_score, 0) / scored.length : null;
-      const totalPop = vis.reduce((s, d) => s + d.total_pop, 0);
+    // ─ Pulsing highlight ─
+    let highlightLayer = null;
 
-      const pct = (a, b) => b ? ` (${Math.round(a / b * 100)}%)` : '';
-
-      document.getElementById('panel-body').innerHTML = `
-        <div class="panel-header">
-          <span class="section-label">VISIBLE AREA</span>
-          <div class="panel-title">Current View</div>
-          <div class="panel-subtitle">${vis.length} ZIP codes</div>
-        </div>
-        <div class="panel-inner">
-          ${statRow('Population', fmtPop(totalPop))}
-          ${statRow('Avg SAS score', avgScore !== null ? avgScore.toFixed(1) : '—')}
-          ${statRow('Low-access ZIPs', low.length + pct(low.length, scored.length))}
-          ${statRow('Majority-minority', mm.length + ' ZIPs')}
-          ${statRow('Double jeopardy', djf.length + ' ZIPs')}
-        </div>`;
+    function showHighlight(zip) {
+      removeHighlight();
+      const lyr = S.zipLayers.get(zip);
+      if (!lyr) return;
+      highlightLayer = L.geoJSON(lyr.feature, {
+        style: { weight: 3, color: '#e10087', fill: false, className: 'zip-pulse-outline' },
+        renderer: L.svg()
+      }).addTo(S.map);
     }
 
-    function statRow(label, val) {
-      return `<div class="stat-row"><span class="stat-row-label">${label}</span><span class="stat-row-val">${val}</span></div>`;
+    function removeHighlight() {
+      if (highlightLayer) { S.map.removeLayer(highlightLayer); highlightLayer = null; }
     }
 
-    // ─ ZIP selection ─
-    function selectZip(zip) {
-      S.selectedZip = zip;
-      S.geoLayer.setStyle(f => {
-        const z = zipFromFeature(f);
-        return z === zip ? highlightStyle() : styleFor(f);
-      });
-      const d = S.data.get(zip);
-      const score = d?.sas_score ?? null;
-      const flagType = d?.double_jeopardy_flag === 1 ? 'double_jeopardy'
-        : d?.socioeconomic_vulnerability_flag === 1 ? 'sev'
-        : d?.clinical_risk_flag === 1 ? 'crf'
-        : 'none';
-      gtag('event', 'zip_selected', { zip_code: zip, sas_score: score, vulnerability_flag: flagType });
-      const isMobile = window.innerWidth < 768;
+    // ─ Detail card ─
+    // ── Area name cache + async lookup ──
+    const areaNameCache = new Map();
 
-      if (isMobile) {
-        showMobileZipDrawer(zip, d);
-        // Zoom with smaller padding so the highlighted ZIP is visible above the drawer
-        const lyr = S.zipLayers.get(zip);
-        if (lyr) S.map.fitBounds(lyr.getBounds(), { paddingTopLeft: [20, 20], paddingBottomRight: [20, window.innerHeight * 0.45] });
-      } else {
-        renderZipPanel(zip, d);
-        const lyr = S.zipLayers.get(zip);
-        if (lyr) S.map.fitBounds(lyr.getBounds(), { padding: [60, 60], maxZoom: 13 });
+    async function fetchAreaName(zip, lat, lon) {
+      if (!lat || !lon) return;
+      if (areaNameCache.has(zip)) { applyAreaName(zip, areaNameCache.get(zip)); return; }
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`;
+        const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const data = await res.json();
+        const a    = data.address || {};
+        const name = a.neighbourhood || a.suburb || a.city_district || a.city || a.town || a.village || '';
+        areaNameCache.set(zip, name);
+        applyAreaName(zip, name);
+      } catch (_) { /* silently ignore — ZIP code alone is sufficient */ }
+    }
+
+    function applyAreaName(zip, name) {
+      if (S.selectedZip !== zip || !name) return;
+      // Update card header
+      const el = document.getElementById('dc-area-name');
+      if (el) el.textContent = name;
+      // Update search bar
+      const inp = document.getElementById('search-input');
+      if (inp && inp.readOnly) inp.value = name + '  ·  ' + zip;
+    }
+
+    function openDetailCard(zip, d) {
+      document.getElementById('detail-content').innerHTML = buildDetailCardHTML(zip, d);
+      document.getElementById('detail-card').classList.add('open');
+
+      // Search bar: show ZIP, collapse Search button → × button
+      const inp = document.getElementById('search-input');
+      inp.value    = zip;   // area name fills in async via applyAreaName
+      inp.readOnly = true;
+      document.getElementById('search-wrap').classList.add('zip-selected');
+
+      if (window.innerWidth < 768) {
+        document.getElementById('detail-overlay').classList.add('open');
       }
-      hideTip();
+
+      // Async: fetch area name and update card + search bar when ready
+      const data = S.data.get(zip);
+      if (data?.pw_centroid_lat) fetchAreaName(zip, data.pw_centroid_lat, data.pw_centroid_lon);
     }
 
-    function returnToViewport() {
-      S.selectedZip = null;
-      S.geoLayer.setStyle(styleFor);
-      closeMobileZipDrawer(false); // close without calling returnToViewport again
-      updateViewportPanel();
+    function closeDetailCard() {
+      document.getElementById('detail-card').classList.remove('open');
+      document.getElementById('detail-overlay').classList.remove('open');
+
+      // Restore search bar
+      const inp = document.getElementById('search-input');
+      inp.value    = '';
+      inp.readOnly = false;
+      document.getElementById('search-wrap').classList.remove('zip-selected');
     }
 
-    // ─ Shared ZIP detail HTML builder ─
-    // ── Safety modal ──
-    function checkSafetyModal() {
-      if (localStorage.getItem('sas_safety_v1') !== '1') {
-        document.getElementById('safety-overlay').classList.add('visible');
-      }
+    function scoreLabel(s) {
+      if (s === null) return 'No Score';
+      if (s >= 70) return 'Strong Access';
+      if (s >= 40) return 'Moderate Access';
+      return 'Limited Access';
     }
-    function dismissSafetyModal() {
-      localStorage.setItem('sas_safety_v1', '1');
-      const el = document.getElementById('safety-overlay');
-      el.style.transition = 'opacity .25s';
-      el.style.opacity = '0';
-      setTimeout(() => {
-        el.classList.remove('visible');
-        el.style.opacity = '';
-        el.style.transition = '';
-      }, 260);
-    }
-    // Show modal immediately on first visit (appears on top of loading overlay)
-    document.addEventListener('DOMContentLoaded', checkSafetyModal);
 
-    // ── ZIP detail HTML builder ──
-    function buildZipDetailHTML(zip, d) {
+    function buildDetailCardHTML(zip, d) {
       const score = d?.sas_score ?? null;
       const color = sasColor(score);
-      const tier  = scoreTier(score);
+      const label = scoreLabel(score);
+      const drives = S.zipDrives.get(zip) || [];
+      const nearest = drives[0];
+      const nearestHosp = nearest ? S.hospitals.get(nearest.facility_id) : null;
+      const mins = nearest ? Math.round(nearest.drive_minutes) : null;
+      const interpSentence = mins !== null
+        ? `Residents of ZIP ${zip} are approximately ${mins} minutes from the nearest certified stroke center.`
+        : 'Drive time data is not available for this ZIP code.';
+
       const flags = [];
-      if (d?.double_jeopardy_flag === 1) {
-        flags.push('<span class="ftag ftag-djf">Double Jeopardy</span>');
-      } else {
-        if (d?.socioeconomic_vulnerability_flag === 1) flags.push('<span class="ftag ftag-sev">SEV</span>');
-        if (d?.clinical_risk_flag === 1) flags.push('<span class="ftag ftag-crf">CRF</span>');
+      if (d?.double_jeopardy_flag === 1) flags.push('<span class="flag-pill djf">Double Jeopardy</span>');
+      else {
+        if (d?.socioeconomic_vulnerability_flag === 1) flags.push('<span class="flag-pill sev">SEV</span>');
+        if (d?.clinical_risk_flag === 1) flags.push('<span class="flag-pill crf">CRF</span>');
       }
 
-      const drives  = S.zipDrives.get(zip) || [];
-      const hospRows = drives.slice(0, 10).map((e, i) => {
+      const hospRows = drives.slice(0, 8).map((e, i) => {
         const h = S.hospitals.get(e.facility_id);
         if (!h) return '';
         return `<div class="hosp-row" onclick="openHospitalModal('${e.facility_id}')">
-          <span class="hosp-row-num">${i + 1}</span>
+          <span class="hosp-row-num">${i+1}</span>
           <div class="hosp-row-body">
             <div class="hosp-row-name">${h.facility_name}</div>
-            <div class="hosp-row-meta"><span class="fac-badge">${h.stroke_level}</span>${e.drive_minutes.toFixed(1)} min</div>
+            <div class="hosp-row-meta"><span class="fac-badge ${levelClass(h.stroke_level)}">${h.stroke_level}</span>${e.drive_minutes.toFixed(1)} min · ${e.drive_miles != null ? e.drive_miles.toFixed(1) + ' mi' : ''}</div>
           </div>
         </div>`;
       }).join('');
 
       return `
-        <div style="background:#8b0000;color:#fff;padding:10px 14px;margin-bottom:14px;
-                    font-size:.82rem;line-height:1.55;flex-shrink:0">
-          <strong>In a stroke emergency, call 911 immediately.</strong>
-          Always follow EMS guidance.
+        <div class="dc-drag-handle"></div>
+        <!-- Header: area name only — × on the search bar above dismisses the card -->
+        <span class="dc-area-name" id="dc-area-name">ZIP ${zip}</span>
+        <span class="dc-zip-sub">ZIP code ${zip}</span>
+        <span class="dc-score" style="color:${color}">${score !== null ? score.toFixed(0) : '—'}</span>
+        <span class="dc-label" style="color:${color}">${label}</span>
+        <!-- 911 callout sits under the score, not at the very top -->
+        <div class="callout-911">
+          <strong>In a stroke emergency, call 911 immediately.</strong> Always follow EMS guidance.
         </div>
-        <div style="font-family:'Roboto Slab',serif;font-size:2.6rem;line-height:1;color:${color}">${score !== null ? score.toFixed(0) : '—'}</div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:${color};margin-bottom:8px">${tier}</div>
-        ${flags.length ? '<div class="flag-tags" style="margin-bottom:8px">' + flags.join('') + '</div>' : ''}
-        <div class="panel-section">
-          <span class="section-label">Demographics</span>
-          ${dbar('% Hispanic', d?.pct_hispanic, 100)}
-          ${dbar('% Black', d?.pct_black_nh, 100)}
-          ${dbar('% White', d?.pct_white_nh, 100)}
-          ${dbar('Below poverty', d?.pct_below_poverty, 50)}
-          ${dbarIncome('Median income', d?.median_hh_income)}
-        </div>
-        <div class="panel-section" style="padding:0">
-          <div style="padding:12px 0 0"><span class="section-label" style="padding:0 18px">Nearby Hospitals (${drives.length})</span></div>
-          ${hospRows || '<p style="font-size:.82rem;color:#999;padding:8px 18px">No drive times available</p>'}
-        </div>`;
+        ${nearestHosp ? `
+        <div class="dc-facility">
+          <div class="fac-name-text">${nearestHosp.facility_name}</div>
+          <div class="dc-fac-meta">
+            <span class="fac-badge ${levelClass(nearestHosp.stroke_level)}">${nearestHosp.stroke_level}</span>
+            <span class="fac-drive-text">${nearest.drive_minutes.toFixed(1)} min · ${nearest.drive_miles != null ? nearest.drive_miles.toFixed(1) + ' mi' : ''}</span>
+          </div>
+        </div>` : ''}
+        <p class="dc-interp">${interpSentence}</p>
+        <hr class="dc-divider">
+        <span class="dc-section-label">Demographics</span>
+        ${dbar('% Hispanic', d?.pct_hispanic, 100)}
+        ${dbar('% Black', d?.pct_black_nh, 100)}
+        ${dbarIncome('Median income', d?.median_hh_income)}
+        ${flags.length ? `<div class="flag-pills">${flags.join('')}</div>` : ''}
+        ${drives.length ? `
+        <hr class="dc-divider">
+        <span class="dc-section-label">Nearby Hospitals (${drives.length})</span>
+        ${hospRows}` : ''}
+        <hr class="dc-divider" style="margin-top:16px">
+        <button type="button" onclick="openSlideExport('${zip}')"
+          style="width:100%;padding:12px 0;background:#0f0f3c;color:#fff;border:none;
+                 border-left:4px solid #e10087;border-radius:0 999px 999px 0;
+                 font-family:'Roboto',sans-serif;font-size:.88rem;font-weight:500;
+                 cursor:pointer;letter-spacing:.3px;margin-top:4px">
+          Export as Slide
+        </button>
+      `;
     }
 
-    // ─ Desktop right panel ─
-    function renderZipPanel(zip, d) {
-      document.getElementById('panel-body').innerHTML = `
-        <div class="panel-header">
-          <button type="button" class="panel-back" onclick="returnToViewport()">← Back to view</button>
-          <div class="panel-title">ZIP ${zip}</div>
-        </div>
-        <div class="panel-inner">${buildZipDetailHTML(zip, d)}</div>`;
-    }
-
-    // ─ Mobile ZIP drawer ─
-    function showMobileZipDrawer(zip, d) {
-      const el = document.getElementById('mobile-zip-drawer');
-      const overlay = document.getElementById('mobile-zip-overlay');
-      const content = document.getElementById('mobile-zip-content');
-
-      content.innerHTML = `
-        <div style="margin-bottom:4px">
-          <span style="font-family:'Roboto Slab',serif;font-size:1.5rem;color:var(--navy);font-weight:700">ZIP ${zip}</span>
-        </div>
-        ${buildZipDetailHTML(zip, d)}`;
-
-      overlay.classList.add('open');
-      el.style.display = 'block';
-      // Force reflow so the browser registers the translateY(100%) starting position
-      // before we add .open (which transitions to translateY(0))
-      void el.offsetHeight;
-      el.classList.add('open');
-    }
-
-    function closeMobileZipDrawer(callReturnToViewport = true) {
-      const el      = document.getElementById('mobile-zip-drawer');
-      const overlay = document.getElementById('mobile-zip-overlay');
-      if (!el) return;
-      el.classList.remove('open');
-      overlay.classList.remove('open');
-      setTimeout(() => { el.style.display = 'none'; }, 320);
-      if (callReturnToViewport && S.selectedZip) returnToViewport();
-    }
-
+    // ─ Demographics bars ─
     function dbar(label, val, max) {
       const pct = Math.min(100, Math.round(Math.max(0, (val || 0) / max * 100)));
       const disp = (+(val || 0)).toFixed(1) + '%';
@@ -1364,6 +1542,96 @@
       const disp = val != null ? '$' + Math.round(val).toLocaleString() : '—';
       return `<div class="dbar dbar-navy"><div class="dbar-head"><span>${label}</span><span>${disp}</span></div><div class="dbar-track"><div class="dbar-fill" style="width:${pct}%"></div></div></div>`;
     }
+
+    // ─ ZIP selection ─
+    function selectZip(zip) {
+      S.selectedZip = zip;
+      const d = S.data.get(zip);
+
+      // Style: highlight selected, show all others normally
+      S.geoLayer.setStyle(f => {
+        const z = zipFromFeature(f);
+        return z === zip ? { ...styleFor(f), weight: 2.5, color: '#e10087', fillOpacity: 0.8 } : styleFor(f);
+      });
+
+      // Pulsing SVG outline
+      showHighlight(zip);
+
+      // Open detail card
+      openDetailCard(zip, d);
+
+      // Zoom to ZIP
+      const lyr = S.zipLayers.get(zip);
+      if (lyr) {
+        const padding = window.innerWidth < 768
+          ? { paddingTopLeft: [20, 20], paddingBottomRight: [20, window.innerHeight * 0.45] }
+          : { padding: [60, 60], maxZoom: 13 };
+        S.map.fitBounds(lyr.getBounds(), padding);
+      }
+
+      hideTip();
+
+      // GA
+      const score = d?.sas_score ?? null;
+      const flagType = d?.double_jeopardy_flag === 1 ? 'double_jeopardy'
+        : d?.socioeconomic_vulnerability_flag === 1 ? 'sev'
+        : d?.clinical_risk_flag === 1 ? 'crf' : 'none';
+      gtag('event', 'zip_selected', { zip_code: zip, sas_score: score, vulnerability_flag: flagType });
+    }
+
+    function returnToViewport() {
+      S.selectedZip = null;
+      removeHighlight();
+      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+      closeDetailCard();
+    }
+
+    // ─ View switching ─
+    function switchView(view) {
+      S.currentPageView = view;
+
+      // Update segmented control
+      document.querySelectorAll('.seg-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.view === view)
+      );
+
+      // Toggle body class for layout
+      document.body.className = 'view-' + view;
+
+      // Show/hide floating elements
+      const onCommunity = view === 'community';
+      document.getElementById('search-wrap').style.display = onCommunity ? 'flex' : 'none';
+      document.getElementById('region-toggle').classList.toggle('hidden', onCommunity);
+      document.getElementById('map-legend').classList.toggle('hidden', onCommunity);
+
+      // Close any open detail card
+      closeDetailCard();
+      removeHighlight();
+
+      // Reset map view
+      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+      if (view === 'disparity') {
+        setTimeout(() => goCA(), 50);
+      } else {
+        if (S.map) S.map.setView([34.05, -118.25], 9);
+      }
+
+      if (S.map) S.map.invalidateSize();
+
+      // GA
+      gtag('event', 'view_changed', { view_name: view === 'community' ? 'My Community' : 'The Disparity' });
+    }
+
+    // ─ Region toggle ─
+    function setRegion(region, btn) {
+      document.querySelectorAll('#region-toggle .seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (region === 'la') goLA();
+      else goCA();
+    }
+
+    function goLA() { S.map?.setView([34.05, -118.25], 9); }
+    function goCA() { if (S.caBounds) S.map?.fitBounds(S.caBounds, { padding: [24, 24] }); }
 
     // ─ Hospital modal ─
     function openHospitalModal(fid) {
@@ -1388,7 +1656,7 @@
       document.getElementById('modal-body').innerHTML = `
         <div class="modal-hosp-name">${h.facility_name}</div>
         <div style="color:#777;font-size:.85rem;margin-bottom:8px">${h.city}, ${h.county} County${ratingStr ? ' — ' + ratingStr : ''}</div>
-        <span class="fac-badge">${h.stroke_level}</span>
+        <span class="fac-badge ${levelClass(h.stroke_level)}">${h.stroke_level}</span>
         <div class="modal-section">
           <div class="modal-section-title">Facility Details</div>
           <div style="font-size:.84rem;color:var(--text);line-height:1.7">
@@ -1411,99 +1679,59 @@
       document.getElementById('hospital-modal').classList.remove('open');
     }
 
-    // ─ Hospital toggle ─
+    // ─ Hospital toggle (kept but not exposed in UI) ─
+    // toggleHospitals — kept for potential future use; hospital markers are always on in new UI
     function toggleHospitals() {
-      const btn = document.getElementById('hosp-toggle');
       if (S.hospitalMarkersVisible) {
         S.map.removeLayer(S.hospitalLayer);
         S.hospitalMarkersVisible = false;
-        btn.classList.remove('active');
       } else {
         S.map.addLayer(S.hospitalLayer);
         S.hospitalMarkersVisible = true;
-        btn.classList.add('active');
       }
     }
 
-    // ─ View dropdown ─
-    function toggleViewDd() {
-      const btn  = document.getElementById('view-btn');
-      const menu = document.getElementById('view-menu');
-      const open = menu.classList.toggle('open');
-      btn.classList.toggle('open', open);
-      if (open) positionBelow(btn, menu);
+    // ── Safety modal ──
+    function checkSafetyModal() {
+      if (localStorage.getItem('sas_safety_v1') !== '1') {
+        document.getElementById('safety-overlay').classList.add('visible');
+      }
     }
-
-    function setView(el) {
-      const view = el.dataset.view;
-      S.view = view;
-      document.getElementById('view-menu').classList.remove('open');
-      document.getElementById('view-btn').classList.remove('open');
-      const labels = { sas: 'SAS Score', minority: 'Minority Communities', income: 'Income vs Access', flags: 'Vulnerability Flags' };
-      document.getElementById('view-label').textContent = labels[view];
-      document.querySelectorAll('.ctrl-menu-item').forEach(i => i.classList.toggle('active', i.dataset.view === view));
-      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
-      updateLegend();
-      gtag('event', 'view_changed', { view_name: labels[view] });
+    function dismissSafetyModal() {
+      localStorage.setItem('sas_safety_v1', '1');
+      const el = document.getElementById('safety-overlay');
+      el.style.transition = 'opacity .25s';
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.classList.remove('visible');
+        el.style.opacity = '';
+        el.style.transition = '';
+      }, 260);
     }
+    // Show modal immediately on first visit (appears on top of loading overlay)
+    document.addEventListener('DOMContentLoaded', checkSafetyModal);
 
-    // ─ Filter pills ─
-    function setFilter(el) {
-      const filter = el.dataset.filter;
-      S.filter = filter;
-      document.querySelectorAll('.ctrl-pills .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === filter));
-      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
-    }
+    // ─ Findings stats ─
+    function computeFindingsStats() {
+      const all = [...S.data.values()];
+      const scored = all.filter(d => d.sas_score !== null);
+      const topQ = scored.filter(d => d.median_hh_income !== null && d.median_hh_income >= S.incomeQ3);
+      const botQ = scored.filter(d => d.median_hh_income !== null && d.median_hh_income <= S.incomeQ1);
+      const mm   = scored.filter(d => d.is_majority_minority === 1);
+      const nonMM = scored.filter(d => d.is_majority_minority === 0);
+      const djf  = all.filter(d => d.double_jeopardy_flag === 1);
 
-    // ─ Zoom ─
-    function goLA() { S.map.setView([34.05, -118.25], 9); }
-    function goCA() { if (S.caBounds) S.map.fitBounds(S.caBounds, { padding: [24, 24] }); }
+      const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      const gap  = mean(topQ.map(d => d.sas_score)) - mean(botQ.map(d => d.sas_score));
+      const rGap = mean(nonMM.map(d => d.sas_score)) - mean(mm.map(d => d.sas_score));
+      const djfPop = djf.reduce((s, d) => s + d.total_pop, 0);
 
-    // ─ Legend ─
-    const LEGENDS = {
-      sas: {
-        title: 'SAS Score',
-        items: [
-          ['#27ae60', '70–100  High access'],
-          ['#f1c40f', '60–69   Medium-high'],
-          ['#e67e22', '40–59   Medium-low'],
-          ['#c0392b', '0–39    Low access'],
-          ['#cccccc', 'No data'],
-        ]
-      },
-      minority: {
-        title: 'Minority Communities',
-        items: [
-          ['#0f0f3c', 'Majority-minority'],
-          ['#e8e8f0', 'Non-majority-minority'],
-        ]
-      },
-      income: {
-        title: 'Median HH Income',
-        items: [
-          ['#0f0f3c', 'Top quartile'],
-          ['#3d4f9f', 'Upper-mid quartile'],
-          ['#8892c4', 'Lower-mid quartile'],
-          ['#d0d4e8', 'Bottom quartile'],
-          ['#cccccc', 'No data'],
-        ]
-      },
-      flags: {
-        title: 'Vulnerability Flags',
-        items: [
-          ['#8b0000', 'Double jeopardy'],
-          ['#e10087', 'SEV only'],
-          ['#e67e22', 'CRF only'],
-          ['#eeeeee', 'No flag'],
-        ]
-      },
-    };
+      const fmt = n => (n >= 0 ? '+' : '') + n.toFixed(1);
 
-    function updateLegend() {
-      const leg = LEGENDS[S.view];
-      document.getElementById('panel-legend').innerHTML = `
-        <span class="section-label">${leg.title}</span>
-        ${leg.items.map(([c, l]) => `<div class="legend-row"><div class="legend-swatch" style="background:${c}"></div><span>${l}</span></div>`).join('')}`;
+      document.getElementById('f-income-gap').textContent  = fmt(gap) + ' pts';
+      document.getElementById('f-racial-gap').textContent  = fmt(rGap) + ' pts';
+      document.getElementById('f-risk-pop').textContent    = djf.length + ' ZIP codes';
+      document.getElementById('f-risk-detail').textContent = fmtPop(djfPop) + ' residents at double risk';
     }
 
     // ─ Search ─
@@ -1666,13 +1894,8 @@
       if (el) { el.innerHTML = ''; el.classList.remove('open'); }
     }
 
-    // Close dropdowns on outside click
+    // Close search results on outside click
     document.addEventListener('click', e => {
-      const dd = document.getElementById('view-dd');
-      if (dd && !dd.contains(e.target)) {
-        document.getElementById('view-menu').classList.remove('open');
-        document.getElementById('view-btn').classList.remove('open');
-      }
       const sw = document.getElementById('search-wrap');
       if (sw && !sw.contains(e.target)) closeSearch();
     });
@@ -1689,6 +1912,194 @@
       document.getElementById('hamburger').setAttribute('aria-expanded', 'false');
     }
 
+    // ── Slide export ─────────────────────────────────────────────────────────
+
+    function calcCAStats() {
+      const all     = [...S.data.values()];
+      const scored  = all.filter(d => d.sas_score !== null);
+      const incomes = all.filter(d => d.median_hh_income !== null);
+      const avgScore  = scored.length  ? scored.reduce((s,d)=>s+d.sas_score,0)          / scored.length  : 73;
+      const avgIncome = incomes.length ? incomes.reduce((s,d)=>s+d.median_hh_income,0)  / incomes.length : 82000;
+      const mmPct     = all.length     ? (all.filter(d=>d.is_majority_minority===1).length / all.length)*100 : 48;
+      return { avgScore, avgIncome, mmPct };
+    }
+
+    const CERT_FULL = {
+      CSC:  'Comprehensive Stroke Center',
+      TSC:  'Thrombectomy-capable Stroke Center',
+      PSC:  'Primary Stroke Center',
+      ASRH: 'Acute Stroke Ready Hospital',
+    };
+
+    let slideZip = null;
+
+    function openSlideExport(zip) {
+      slideZip = zip;
+      const d = S.data.get(zip);
+      document.getElementById('slide-preview').innerHTML = buildSlideHTML(zip, d);
+      document.getElementById('slide-export-modal').style.display = 'flex';
+    }
+
+    function closeSlideExport() {
+      document.getElementById('slide-export-modal').style.display = 'none';
+      slideZip = null;
+    }
+
+    async function downloadSlide() {
+      if (!slideZip) return;
+      const slideDiv = document.getElementById('slide-canvas');
+      if (!slideDiv || typeof html2canvas === 'undefined') {
+        alert('html2canvas not loaded. Please try again.');
+        return;
+      }
+      const btn = document.getElementById('dl-btn');
+      btn.textContent = 'Generating…';
+      btn.disabled = true;
+      await document.fonts.ready;
+      try {
+        const canvas = await html2canvas(slideDiv, {
+          scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
+        });
+        const link = document.createElement('a');
+        link.download = `sas-${slideZip}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch(e) {
+        console.error('Slide export failed:', e);
+        alert('Export failed — ' + e.message);
+      }
+      btn.textContent = 'Download PNG';
+      btn.disabled = false;
+    }
+
+    // #f9a8d4 = soft pink — readable on dark navy (#0f0f3c); #e10087 is too vivid in that context
+    function slidebar(zipVal, caAvg, maxVal, labelText, fmtFn) {
+      const zipPct = Math.min(100, Math.max(0, (zipVal / maxVal) * 100)).toFixed(1);
+      const avgPct = Math.min(100, Math.max(0, (caAvg / maxVal) * 100)).toFixed(1);
+      return `<div style="margin-bottom:16px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#f9a8d4;margin-bottom:6px;font-family:'Roboto',sans-serif">${labelText}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1;height:7px;background:#2a3a6b;border-radius:4px;position:relative">
+            <div style="position:absolute;top:0;left:0;height:100%;width:${zipPct}%;background:#fff;border-radius:4px"></div>
+            <div style="position:absolute;top:50%;left:${avgPct}%;transform:translate(-50%,-50%);width:2px;height:13px;background:#e10087;border-radius:1px"></div>
+          </div>
+          <div style="min-width:90px;text-align:right">
+            <div style="font-size:12px;font-weight:600;color:#fff;font-family:'Roboto',sans-serif">${fmtFn(zipVal)}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.5);font-family:'Roboto',sans-serif">CA avg ${fmtFn(caAvg)}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function buildSlideHTML(zip, d) {
+      const score   = d?.sas_score ?? null;
+      const color   = sasColor(score);
+      const label   = scoreLabel(score).toUpperCase();
+      const area    = areaNameCache.get(zip) || '';
+      const cs      = S.caStats;
+      const drives  = S.zipDrives.get(zip) || [];
+      const nearest = drives[0];
+      const nh      = nearest ? S.hospitals.get(nearest.facility_id) : null;
+      const mins    = nearest ? Math.round(nearest.drive_minutes) : null;
+      const sentence = mins !== null
+        ? `Residents of ZIP ${zip} are approximately ${mins} minutes from the nearest certified stroke center.`
+        : 'Drive time data is not available for this ZIP code.';
+
+      const flags = [];
+      if (d?.double_jeopardy_flag===1)              flags.push({l:'Double Jeopardy',c:'#8b0000'});
+      else {
+        if (d?.socioeconomic_vulnerability_flag===1) flags.push({l:'SEV — Socioeconomic Vulnerability',c:'#e10087'});
+        if (d?.clinical_risk_flag===1)               flags.push({l:'CRF — Clinical Risk',c:'#e67e22'});
+      }
+
+      const scoreBar  = slidebar(score??0, cs.avgScore, 100,   'SAS Score', v => v.toFixed(0));
+      const incBar    = slidebar(
+        (d?.median_hh_income??0)/1000, cs.avgIncome/1000, 300,
+        'Median Household Income', v => '$'+v.toFixed(0)+'K'
+      );
+      const mmVal     = d?.is_majority_minority===1 ? cs.mmPct*1.05 : cs.mmPct*0.4;
+      const mmBar     = slidebar(mmVal, cs.mmPct, 100,
+        'Majority-Minority Community (' + (d?.is_majority_minority===1 ? 'YES' : 'NO') + ')',
+        v => v.toFixed(0)+'%'
+      );
+
+      return `
+        <div id="slide-canvas" style="width:960px;height:540px;display:flex;flex-direction:column;background:#fff;overflow:hidden;font-family:'Roboto',sans-serif">
+          <div style="flex:1;display:flex;overflow:hidden">
+
+            <!-- Left column -->
+            <div style="width:576px;padding:32px 36px 24px;display:flex;flex-direction:column;box-sizing:border-box">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#e10087;margin-bottom:10px;font-family:'Roboto',sans-serif">STROKE ACCESS SCORE</div>
+              <div style="font-family:'Roboto Slab',serif;font-size:46px;font-weight:700;color:#0f0f3c;line-height:1;margin-bottom:2px">${zip}</div>
+              <div style="font-size:14px;color:#777;margin-bottom:16px;font-family:'Roboto',sans-serif">${area || 'California'}</div>
+
+              <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:14px">
+                <div style="font-family:'Roboto Slab',serif;font-size:88px;font-weight:700;color:${color};line-height:1">${score!==null?score.toFixed(0):'—'}</div>
+                <div style="padding-bottom:10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${color};font-family:'Roboto',sans-serif">${label}</div>
+              </div>
+
+              <div style="font-size:12px;color:#444;line-height:1.55;margin-bottom:14px;font-family:'Roboto',sans-serif">${sentence}</div>
+
+              <!-- Nearest facility card + additional hospitals -->
+              ${nh ? `<div style="background:#f5f4f8;padding:9px 13px;border-radius:8px;margin-bottom:6px">
+                <div style="font-weight:700;font-size:12px;color:#0f0f3c;margin-bottom:2px;font-family:'Roboto',sans-serif">${nh.facility_name}</div>
+                <div style="font-size:10px;color:#555;font-family:'Roboto',sans-serif">${CERT_FULL[nh.stroke_level]||nh.stroke_level} · ${nearest.drive_minutes.toFixed(1)} min · ${nearest.drive_miles?.toFixed(1)??'—'} mi</div>
+              </div>` : ''}
+              ${drives.slice(1,4).map((e,i) => {
+                const h2 = S.hospitals.get(e.facility_id);
+                if (!h2) return '';
+                const lc = levelColor(h2.stroke_level);
+                return `<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-top:1px solid #efefef">
+                  <span style="font-size:10px;color:#bbb;font-family:'Roboto',sans-serif;padding-top:1px;min-width:14px">${i+2}</span>
+                  <div>
+                    <span style="font-size:11px;font-weight:600;color:#0f0f3c;font-family:'Roboto',sans-serif">${h2.facility_name}</span>
+                    <div style="font-size:10px;color:#777;font-family:'Roboto',sans-serif">${CERT_FULL[h2.stroke_level]||h2.stroke_level} · ${e.drive_minutes.toFixed(1)} min</div>
+                  </div>
+                </div>`;
+              }).join('')}
+
+              ${flags.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${flags.map(f=>`<span style="padding:3px 10px;background:${f.c};color:#fff;font-size:10px;font-weight:700;border-radius:999px;font-family:'Roboto',sans-serif">${f.l}</span>`).join('')}</div>` : ''}
+            </div>
+
+            <!-- Right column: navy -->
+            <div style="width:384px;background:#0f0f3c;padding:24px 26px 20px;display:flex;flex-direction:column;box-sizing:border-box;border-radius:20px 0 0 0">
+              <!-- Comparison bars -->
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#f9a8d4;margin-bottom:16px;font-family:'Roboto',sans-serif">HOW THIS ZIP COMPARES</div>
+              ${scoreBar}${incBar}${mmBar}
+
+              <!-- Stacked demographic bars -->
+              <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,.12);padding-top:12px">
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#f9a8d4;margin-bottom:10px;font-family:'Roboto',sans-serif">DEMOGRAPHICS</div>
+                ${[
+                  ['Hispanic',     d?.pct_hispanic??0,    100],
+                  ['Black',        d?.pct_black_nh??0,    100],
+                  ['White',        d?.pct_white_nh??0,    100],
+                  ['Below Poverty',d?.pct_below_poverty??0, 60],
+                ].map(([lbl, val, max]) => {
+                  const pct = Math.min(100, Math.max(0, val/max*100)).toFixed(1);
+                  return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <div style="font-size:10px;color:rgba(255,255,255,.65);min-width:80px;font-family:'Roboto',sans-serif">${lbl}</div>
+                    <div style="flex:1;height:5px;background:#2a3a6b;border-radius:3px;overflow:hidden">
+                      <div style="width:${pct}%;height:100%;background:rgba(255,255,255,.75);border-radius:3px"></div>
+                    </div>
+                    <div style="font-size:10px;color:#fff;min-width:34px;text-align:right;font-family:'Roboto',sans-serif">${val.toFixed(1)}%</div>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background:#0f0f3c;padding:7px 32px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+            <span style="color:rgba(255,255,255,.7);font-size:9px;font-family:'Roboto',sans-serif">stroke-access-score.vercel.app</span>
+            <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Data source: U.S. Census ACS 2022 · CMS Hospital Data · Drive times</span>
+            <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Research prototype. EMNet certification data pending. Not for clinical use.</span>
+          </div>
+        </div>`;
+    }
+
+    // ── End slide export ──────────────────────────────────────────────────────
+
     // ─ Init ─
     async function init() {
       try {
@@ -1698,6 +2109,10 @@
         buildHospitals(hospitals);
         buildDriveMaps(driveCache);
 
+        // Calculate findings stats for disparity view + slide export
+        computeFindingsStats();
+        S.caStats = calcCAStats();
+
         const loadEl = document.getElementById('loading');
         loadEl.style.opacity = '0';
         setTimeout(() => { loadEl.style.display = 'none'; }, 400);
@@ -1705,8 +2120,10 @@
         initMap(geo);
         initHospitalLayer();
         S.map.invalidateSize();
-        updateLegend();
-        S.map.once('moveend', updateViewportPanel);
+
+        // Set initial view
+        switchView('community');
+
       } catch (err) {
         document.getElementById('loading').style.display = 'none';
         const ep = document.getElementById('error-panel');
@@ -1719,24 +2136,37 @@
     document.addEventListener('DOMContentLoaded', init);
   </script>
 
-  <!-- ── Mobile ZIP detail drawer ── -->
-  <div id="mobile-zip-overlay" onclick="closeMobileZipDrawer()"></div>
-  <div id="mobile-zip-drawer" role="dialog" aria-modal="true" aria-label="ZIP details">
-    <div class="mzd-topbar">
-      <div class="mzd-handle"></div>
-      <button type="button" class="mzd-close" onclick="closeMobileZipDrawer()" aria-label="Close">×</button>
-    </div>
-    <div id="mobile-zip-content"></div>
-  </div>
+  <!-- ── Slide export modal ── -->
+  <div id="slide-export-modal"
+       style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+              z-index:9200;align-items:flex-start;justify-content:center;
+              flex-direction:column;padding:32px 24px;overflow-y:auto;gap:20px">
 
-  <!-- ── Floating menus (body-level so overflow:auto on control-bar can't clip them) ── -->
-  <div class="ctrl-dd-menu" id="view-menu">
-    <button type="button" class="ctrl-menu-item active" data-view="sas"      onclick="setView(this)">SAS Score</button>
-    <button type="button" class="ctrl-menu-item"        data-view="minority"  onclick="setView(this)">Minority Communities</button>
-    <button type="button" class="ctrl-menu-item"        data-view="income"    onclick="setView(this)">Income vs Access</button>
-    <button type="button" class="ctrl-menu-item"        data-view="flags"     onclick="setView(this)">Vulnerability Flags</button>
+    <!-- Slide preview — 960×540, scrollable on small screens -->
+    <div style="overflow-x:auto;max-width:100%;align-self:center">
+      <div id="slide-preview"
+           style="width:960px;height:540px;border-radius:6px;overflow:hidden;
+                  box-shadow:0 8px 48px rgba(0,0,0,.7);flex-shrink:0">
+        <!-- populated by buildSlideHTML() -->
+      </div>
+    </div>
+
+    <!-- Download + Close -->
+    <div style="display:flex;gap:12px;align-self:center;flex-shrink:0">
+      <button id="dl-btn" onclick="downloadSlide()"
+              style="padding:11px 32px;background:#e10087;color:#fff;border:none;
+                     border-radius:999px;font-family:'Roboto',sans-serif;font-size:.9rem;
+                     font-weight:500;cursor:pointer;letter-spacing:.3px">
+        Download PNG
+      </button>
+      <button onclick="closeSlideExport()"
+              style="padding:11px 32px;background:transparent;color:#fff;
+                     border:2px solid rgba(255,255,255,.5);border-radius:999px;
+                     font-family:'Roboto',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer">
+        Close
+      </button>
+    </div>
   </div>
-  <div class="search-results" id="search-results"></div>
 
 </body>
 </html>
