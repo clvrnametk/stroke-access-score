@@ -452,7 +452,7 @@ function populateStats(data, q1, q3) {
 /* ── Init ── */
 async function init(){
   try{
-    const res=await fetch('../data/ca_zip_scores.csv');
+    const res=await fetch('./ca_zip_scores.csv');
     if(!res.ok)throw new Error(`CSV fetch failed (HTTP ${res.status})`);
     const text=await res.text();
     const rows=parseCSV(text);

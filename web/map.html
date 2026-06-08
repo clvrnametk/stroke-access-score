@@ -907,7 +907,7 @@
     // ─ Data loading ─
     async function loadData() {
       const [gr, cr, hr, dr] = await Promise.all([
-        fetch('../data/ca_zip_simplified.geojson'),
+        fetch('./ca_zip_simplified.geojson'),
         fetch('../data/ca_zip_scores.csv'),
         fetch('../data/ca_hospitals.json'),
         fetch('../data/drive_time_cache.json'),
