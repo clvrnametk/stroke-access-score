@@ -868,6 +868,34 @@
     }
     .hosp-tooltip::before { display: none; }
 
+    /* ── Export modal action buttons ── */
+    .modal-action-btn {
+      padding: 11px 32px; border: none; border-radius: 999px;
+      font-family: 'Roboto', sans-serif; font-size: .9rem; font-weight: 500;
+      cursor: pointer; letter-spacing: .3px;
+      background: #0f0f3c; color: #fff;
+      transition: background .15s;
+    }
+    .modal-action-btn:hover  { background: #1e2a5e; }
+    .modal-action-btn:active { background: #0a0a28; }
+    .modal-close-btn {
+      padding: 11px 32px; background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,.5); border-radius: 999px;
+      font-family: 'Roboto', sans-serif; font-size: .9rem; font-weight: 500;
+      cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .modal-close-btn:hover { border-color: rgba(255,255,255,.9); background: rgba(255,255,255,.08); }
+    /* Export button on detail card */
+    .dc-export-btn {
+      flex-shrink: 0; margin-top: 2px; padding: 5px 14px;
+      background: #0f0f3c; border: none; border-radius: 999px;
+      font-family: 'Roboto', sans-serif; font-size: .75rem; font-weight: 500;
+      color: #fff; cursor: pointer; white-space: nowrap;
+      transition: background .15s;
+    }
+    .dc-export-btn:hover  { background: #1e2a5e; }
+    .dc-export-btn:active { background: #0a0a28; }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .nav-links { display: none; }
@@ -1520,14 +1548,7 @@
             <span class="dc-area-name" id="dc-area-name">ZIP ${zip}</span>
             <span class="dc-zip-sub">ZIP code ${zip}</span>
           </div>
-          <button type="button" onclick="openSlideExport('${zip}')"
-            style="flex-shrink:0;margin-top:2px;padding:5px 14px;
-                   background:#0f0f3c;border:none;
-                   border-radius:999px;font-family:'Roboto',sans-serif;
-                   font-size:.75rem;font-weight:500;color:#fff;cursor:pointer;
-                   white-space:nowrap">
-            Export
-          </button>
+          <button type="button" class="dc-export-btn" onclick="openSlideExport('${zip}')">Export</button>
         </div>
         <span class="dc-score" style="color:${color}">${score !== null ? score.toFixed(0) : '—'}</span>
         <span class="dc-label" style="color:${color}">${label}</span>
@@ -1548,6 +1569,7 @@
         <span class="dc-section-label">Demographics</span>
         ${dbar('% Hispanic', d?.pct_hispanic, 100)}
         ${dbar('% Black', d?.pct_black_nh, 100)}
+        ${dbar('% White', d?.pct_white_nh, 100)}
         ${dbarIncome('Median income', d?.median_hh_income)}
         ${flags.length ? `<div class="flag-pills">${flags.join('')}</div>` : ''}
         ${drives.length ? `
@@ -1984,9 +2006,9 @@
           preview.style.transform = '';
           wrapper.style.width = wrapper.style.height = '';
         }
-        // Show Share button only if Web Share API supports files
-        const canShare = !!(navigator.share && navigator.canShare);
-        document.getElementById('share-btn').style.display = canShare ? 'inline-block' : 'none';
+        // Show Share button whenever Web Share API exists (file or URL sharing)
+        document.getElementById('share-btn').style.display =
+          typeof navigator.share === 'function' ? 'inline-block' : 'none';
       });
     }
 
@@ -2003,15 +2025,31 @@
         });
         canvas.toBlob(async blob => {
           const file = new File([blob], `sas-${slideZip}.png`, { type: 'image/png' });
+          // Prefer file sharing (iOS Safari, some Android); fall back to URL share (Android Chrome)
+          const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
           try {
-            await navigator.share({
-              title: `ZIP ${slideZip} — Stroke Access Score`,
-              text: `Stroke Access Score for ZIP ${slideZip}`,
-              files: [file]
-            });
+            if (canShareFiles) {
+              // Opens native share sheet with the image attached
+              await navigator.share({
+                title: `ZIP ${slideZip} — Stroke Access Score`,
+                files: [file]
+              });
+            } else {
+              // Android Chrome: share sheet with URL + text, then also download image
+              await navigator.share({
+                title: `ZIP ${slideZip} — Stroke Access Score`,
+                text: `Stroke Access Score for ZIP ${slideZip}`,
+                url: window.location.href
+              });
+              // Trigger download alongside the share so the image isn't lost
+              const link = document.createElement('a');
+              link.download = `sas-${slideZip}.png`;
+              link.href = canvas.toDataURL('image/png');
+              link.click();
+            }
           } catch(e) {
             if (e.name !== 'AbortError') {
-              // Fallback to download if share fails
+              // User cancelled or share not available — fall back to plain download
               const link = document.createElement('a');
               link.download = `sas-${slideZip}.png`;
               link.href = canvas.toDataURL('image/png');
@@ -2236,26 +2274,12 @@
 
     <!-- Action buttons -->
     <div style="display:flex;gap:12px;align-self:center;flex-shrink:0;flex-wrap:wrap;justify-content:center">
-      <!-- Share (mobile, shown only when Web Share API available) -->
-      <button id="share-btn" onclick="shareSlide()" style="display:none;
-              padding:11px 32px;background:#0f0f3c;color:#fff;border:none;
-              border-radius:999px;font-family:'Roboto',sans-serif;font-size:.9rem;
-              font-weight:500;cursor:pointer">
-        Share
-      </button>
+      <!-- Share (shown on mobile/devices with Web Share API) -->
+      <button id="share-btn" class="modal-action-btn" onclick="shareSlide()"
+              style="display:none">Share</button>
       <!-- Download PNG (always available) -->
-      <button id="dl-btn" onclick="downloadSlide()"
-              style="padding:11px 32px;background:#e10087;color:#fff;border:none;
-                     border-radius:999px;font-family:'Roboto',sans-serif;font-size:.9rem;
-                     font-weight:500;cursor:pointer;letter-spacing:.3px">
-        Download PNG
-      </button>
-      <button onclick="closeSlideExport()"
-              style="padding:11px 32px;background:transparent;color:#fff;
-                     border:2px solid rgba(255,255,255,.5);border-radius:999px;
-                     font-family:'Roboto',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer">
-        Close
-      </button>
+      <button id="dl-btn" class="modal-action-btn" onclick="downloadSlide()">Download PNG</button>
+      <button class="modal-close-btn" onclick="closeSlideExport()">Close</button>
     </div>
   </div>
 
