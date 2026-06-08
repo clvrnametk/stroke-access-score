@@ -19,6 +19,12 @@
     }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/web/index.html" }
+    { "source": "/",         "destination": "/web/index.html" },
+    { "source": "/map",      "destination": "/web/map.html"   },
+    { "source": "/about",    "destination": "/web/about.html" },
+    { "source": "/web",      "destination": "/web/index.html" },
+    { "source": "/web/",     "destination": "/web/index.html" },
+    { "source": "/web/map",  "destination": "/web/map.html"   },
+    { "source": "/web/about","destination": "/web/about.html" }
   ]
 }
