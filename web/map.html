@@ -1273,7 +1273,12 @@
     function buildHospitals(arr) { arr.forEach(h => S.hospitals.set(h.facility_id, h)); }
 
     function buildDriveMaps(cache) {
-      Object.values(cache).forEach(({ zcta, facility_id, drive_minutes, drive_miles }) => {
+      // Normalize both key formats: old {zcta, facility_id} and new {zip_code, provider_id}
+      Object.values(cache).forEach(entry => {
+        const zcta        = entry.zcta        || entry.zip_code   || '';
+        const facility_id = entry.facility_id || entry.provider_id || '';
+        const { drive_minutes, drive_miles } = entry;
+        if (!zcta || !facility_id) return;
         if (!S.zipDrives.has(zcta)) S.zipDrives.set(zcta, []);
         if (!S.hospitalDrives.has(facility_id)) S.hospitalDrives.set(facility_id, []);
         S.zipDrives.get(zcta).push({ facility_id, drive_minutes, drive_miles });
