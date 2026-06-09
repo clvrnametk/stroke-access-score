@@ -352,20 +352,6 @@
     "telephone": "(559) 624-2000"
   },
   {
-    "facility_id": "050058",
-    "facility_name": "GLENDALE MEM HOSPITAL & HLTH CENTER",
-    "hospital_type": "Acute Care Hospitals",
-    "hospital_ownership": "Voluntary non-profit - Private",
-    "hospital_overall_rating": "4",
-    "stroke_level": "",
-    "lat": 34.128414256695,
-    "lon": -118.257721045775,
-    "address": "1420 S CENTRAL AVE",
-    "city": "GLENDALE",
-    "county": "LOS ANGELES",
-    "telephone": "(818) 502-1900"
-  },
-  {
     "facility_id": "050060",
     "facility_name": "COMMUNITY REGIONAL MEDICAL CENTER",
     "hospital_type": "Acute Care Hospitals",
@@ -890,20 +876,6 @@
     "city": "NOVATO",
     "county": "MARIN",
     "telephone": "(415) 209-1300"
-  },
-  {
-    "facility_id": "050132",
-    "facility_name": "SAN GABRIEL VALLEY MEDICAL CENTER",
-    "hospital_type": "Acute Care Hospitals",
-    "hospital_ownership": "Proprietary",
-    "hospital_overall_rating": "4",
-    "stroke_level": "",
-    "lat": 34.102404834903,
-    "lon": -118.105191859883,
-    "address": "438 W LAS TUNAS DRIVE",
-    "city": "SAN GABRIEL",
-    "county": "LOS ANGELES",
-    "telephone": "(626) 289-5454"
   },
   {
     "facility_id": "050133",
@@ -1619,20 +1591,6 @@
     "telephone": "(760) 366-3711"
   },
   {
-    "facility_id": "05027F",
-    "facility_name": "VA LONG BEACH HEALTHCARE SYSTEM",
-    "hospital_type": "Acute Care - Veterans Administration",
-    "hospital_ownership": "Veterans Health Administration",
-    "hospital_overall_rating": "4",
-    "stroke_level": "",
-    "lat": 33.775378294075,
-    "lon": -118.118870723571,
-    "address": "5901 E. SEVENTH STREET",
-    "city": "LONG BEACH",
-    "county": "LOS ANGELES",
-    "telephone": "(562) 826-8000"
-  },
-  {
     "facility_id": "050280",
     "facility_name": "MERCY MEDICAL CENTER REDDING",
     "hospital_type": "Acute Care Hospitals",
@@ -1645,20 +1603,6 @@
     "city": "REDDING",
     "county": "SHASTA",
     "telephone": "(530) 225-6102"
-  },
-  {
-    "facility_id": "050281",
-    "facility_name": "ALHAMBRA HOSPITAL MEDICAL CENTER",
-    "hospital_type": "Acute Care Hospitals",
-    "hospital_ownership": "Proprietary",
-    "hospital_overall_rating": "4",
-    "stroke_level": "",
-    "lat": 34.090245634245,
-    "lon": -118.144918714741,
-    "address": "100 S RAYMOND AVE",
-    "city": "ALHAMBRA",
-    "county": "LOS ANGELES",
-    "telephone": "(626) 570-1606"
   },
   {
     "facility_id": "050283",
@@ -3558,20 +3502,6 @@
     "city": "LOMA LINDA",
     "county": "SAN BERNARDINO",
     "telephone": "(909) 558-8000"
-  },
-  {
-    "facility_id": "050779",
-    "facility_name": "MARTIN LUTHER KING, JR. COMMUNITY HOSPITAL",
-    "hospital_type": "Acute Care Hospitals",
-    "hospital_ownership": "Voluntary non-profit - Private",
-    "hospital_overall_rating": "4",
-    "stroke_level": "",
-    "lat": 33.9242490871,
-    "lon": -118.244460962196,
-    "address": "1680 EAST 120TH STREET",
-    "city": "LOS ANGELES",
-    "county": "LOS ANGELES",
-    "telephone": "(424) 835-6808"
   },
   {
     "facility_id": "050780",
