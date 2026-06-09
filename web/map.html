@@ -954,8 +954,9 @@
         margin: 10px auto 6px;
       }
       #search-wrap { width: calc(100% - 32px); left: 16px; transform: none; }
-      #map-legend { bottom: 16px; right: 8px; }
-      #zoom-controls { bottom: 70px; right: 8px; transition: opacity .2s; }
+      /* Legend fixed bottom-right; zoom +/- buttons sit directly to its right */
+      #map-legend { bottom: 16px; right: 56px; }
+      #zoom-controls { bottom: 16px; right: 8px; transition: opacity .2s; }
       body:has(#detail-card.open) #zoom-controls { opacity: 0; pointer-events: none; }
       /* Hide zoom buttons while mobile drawer is open — they'd float over the card */
       body:has(#detail-card.open) #zoom-controls { opacity: 0; pointer-events: none; }
