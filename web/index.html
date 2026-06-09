@@ -200,16 +200,21 @@ footer {
 .footer-note { max-width: 420px; font-size: .82rem; line-height: 1.6; color: rgba(255,255,255,.45); }
 
 /* ── Region toggle ── */
-.region-toggle { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
-.region-toggle-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,.4); margin-right: 2px; }
-.region-pill {
-  padding: 0 18px; height: 36px;
-  background: transparent; border: 2px solid rgba(255,255,255,.25); color: rgba(255,255,255,.6);
-  font-family: 'Roboto', sans-serif; font-size: .85rem; font-weight: 500; cursor: pointer;
-  transition: border-color .15s, color .15s, background .15s;
+.region-toggle { display: flex; justify-content: center; margin-bottom: 28px; }
+.region-toggle-inner {
+  display: flex; gap: 0; padding: 3px;
+  background: rgba(255,255,255,.12);
+  border-radius: 999px !important;
 }
-.region-pill:hover { border-color: rgba(255,255,255,.55); color: #fff; }
-.region-pill.active { border-color: var(--pink); color: #fff; background: rgba(225,0,135,.15); }
+.region-pill {
+  padding: 0 22px; height: 32px; border: none;
+  background: transparent; color: rgba(255,255,255,.65);
+  font-family: 'Roboto', sans-serif; font-size: .85rem; font-weight: 500; cursor: pointer;
+  border-radius: 999px !important;
+  transition: background .2s, color .2s; white-space: nowrap;
+}
+.region-pill:not(.active):hover { background: rgba(255,255,255,.1); color: #fff; }
+.region-pill.active { background: #fff; color: var(--navy); }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
@@ -286,9 +291,10 @@ footer {
       <a class="btn btn-outline" href="/about">Read the Methodology</a>
     </div>
     <div class="region-toggle">
-      <span class="region-toggle-label">Scope</span>
-      <button class="region-pill active" data-region="la" onclick="setRegion('la')">Los Angeles County</button>
-      <button class="region-pill" data-region="ca" onclick="setRegion('ca')">All California</button>
+      <div class="region-toggle-inner">
+        <button class="region-pill active" data-region="la" onclick="setRegion('la')">Los Angeles County</button>
+        <button class="region-pill" data-region="ca" onclick="setRegion('ca')">All California</button>
+      </div>
     </div>
     <div class="stat-boxes">
       <div class="stat-box">
