@@ -268,6 +268,15 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
     <span class="section-label">About This Project</span>
     <h1>Mapping the Geography of Stroke Care</h1>
     <p>The Stroke Access Score is a research tool built to quantify geographic inequity in access to stroke-certified hospitals across California — and to examine how that inequity intersects with race, income, and clinical risk.</p>
+    <div style="margin-top:28px">
+      <button class="download-pdf-btn" onclick="downloadMethodologyPDF()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Download Methodology PDF
+      </button>
+    </div>
   </div>
 </div>
 
@@ -462,6 +471,11 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   <div>
     <div class="footer-logo">Stroke Access Score</div>
     <div style="font-size:.85rem">A research project by James Beavis BSN BA &amp; Mike Morales</div>
+    <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px">
+      © 2025 James Beavis &amp; Mike Morales ·
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
+         style="color:rgba(255,255,255,.4);text-decoration:underline">CC BY 4.0</a>
+    </div>
   </div>
   <div class="footer-note">
     Scores are based on CMS hospital ratings as a proxy for stroke certification.
@@ -505,7 +519,7 @@ function slideShell(leftHTML, rightHTML) {
     <div style="background:#0f0f3c;padding:7px 32px;display:flex;
       justify-content:space-between;align-items:center;flex-shrink:0">
       <span style="color:rgba(255,255,255,.7);font-size:9px;font-family:'Roboto',sans-serif">${SITE}</span>
-      <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">${AUTHORS}</span>
+      <span style="color:rgba(255,255,255,.55);font-size:9px;font-family:'Roboto',sans-serif">© 2025 ${AUTHORS} · CC BY 4.0</span>
       <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Research prototype. Not for clinical use.</span>
     </div>
   </div>`;
