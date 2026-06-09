@@ -478,12 +478,12 @@ function num(v,fb=null){const n=parseFloat(v);return isNaN(n)?fb:n;}
 /* ── Stats helpers ── */
 function mean(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;}
 function median(arr){if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);return s[Math.floor(s.length/2)];}
-function fmtPop(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return Math.round(n/1e3)+'K';return n.toLocaleString();}
+function fmtPop(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e4)return(n/1e3).toFixed(0)+'K';return n.toLocaleString();}
 function fmtDollar(n){return'$'+Math.round(n).toLocaleString();}
 function fmtGap(n){return(n>=0?'+':'')+n.toFixed(1)+' pts';}
 
 /* ── Region state ── */
-const S = { data: { all: null, la: null }, q: { all:{q1:0,q3:0}, la:{q1:0,q3:0} }, region: 'la' };
+const S = { data: { ca: null, la: null }, q: { ca:{q1:0,q3:0}, la:{q1:0,q3:0} }, region: 'la' };
 
 function setRegion(region) {
   S.region = region;
@@ -498,20 +498,25 @@ function populateStats(data, q1, q3, region) {
   const all    = [...data.values()];
   const scored = all.filter(d => d.sas_score !== null);
   const low    = scored.filter(d => d.sas_score < 40);
-  const high   = scored.filter(d => d.sas_score >= 70);
   const djf    = all.filter(d => d.double_jeopardy_flag === 1);
   const mm     = scored.filter(d => d.is_majority_minority === 1);
   const nonMM  = scored.filter(d => d.is_majority_minority === 0);
   const topQ   = scored.filter(d => d.median_hh_income !== null && d.median_hh_income >= q3);
   const botQ   = scored.filter(d => d.median_hh_income !== null && d.median_hh_income <= q1);
 
+  // Score-based quartiles for income gap (robust: always computable regardless of access distribution)
+  const byScore  = [...scored].filter(d => d.median_hh_income !== null).sort((a,b) => a.sas_score - b.sas_score);
+  const qSize    = Math.floor(byScore.length / 4);
+  const scoreBot = byScore.slice(0, qSize);           // bottom 25% by score
+  const scoreTop = byScore.slice(byScore.length - qSize); // top 25% by score
+  const hiInc    = median(scoreTop.map(d => d.median_hh_income));
+  const loInc    = median(scoreBot.map(d => d.median_hh_income));
+
   // ── Hero stat boxes ──
   document.getElementById('s-total').textContent  = scored.length.toLocaleString();
   document.getElementById('s-lowpop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
-  const hiInc = median(high.map(d => d.median_hh_income).filter(v => v !== null));
-  const loInc = median(low.map(d => d.median_hh_income).filter(v => v !== null));
-  document.getElementById('s-gap').textContent = (hiInc && loInc) ? fmtDollar(hiInc - loInc) : '—';
-  document.getElementById('s-djf').textContent = djf.length.toLocaleString();
+  document.getElementById('s-gap').textContent    = (hiInc !== null && loInc !== null) ? fmtDollar(hiInc - loInc) : '—';
+  document.getElementById('s-djf').textContent    = djf.length.toLocaleString();
 
   // ── Critical findings banner ──
   const incHi     = mean(topQ.map(d => d.sas_score));
@@ -588,9 +593,9 @@ async function init() {
     });
 
     const quartile = (arr, p) => { arr.sort((a,b)=>a-b); return arr[Math.floor(arr.length * p)] ?? 0; };
-    S.data.all = allMap; S.data.la = laMap;
-    S.q.all = { q1: quartile([...allInc], .25), q3: quartile([...allInc], .75) };
-    S.q.la  = { q1: quartile([...laInc],  .25), q3: quartile([...laInc],  .75) };
+    S.data.ca = allMap; S.data.la = laMap;
+    S.q.ca = { q1: quartile([...allInc], .25), q3: quartile([...allInc], .75) };
+    S.q.la = { q1: quartile([...laInc],  .25), q3: quartile([...laInc],  .75) };
 
     document.getElementById('loading').style.opacity = '0';
     setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 400);
