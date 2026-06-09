@@ -47,7 +47,7 @@ nav {
   border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
   text-decoration: none; cursor: pointer;
 }
-.nav-link:hover, .nav-link.active { color: #fff; border-bottom-color: var(--pink); }
+.nav-link:hover, .nav-link.active { color: #fff; border-bottom-color: var(--pink); text-decoration: none; }
 .hamburger {
   display: none; flex-direction: column; gap: 5px;
   background: none; border: none; cursor: pointer; padding: 8px;
@@ -254,7 +254,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
     <a class="nav-link" href="/">Home</a>
     <a class="nav-link" href="/map">Map</a>
     <a class="nav-link active" href="/about">About</a>
-    <a class="nav-link" href="/changelog">Changelog</a>
+    <a class="nav-link" href="/changelog">Data Notes</a>
   </div>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
     <span></span><span></span><span></span>
@@ -264,7 +264,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   <a class="nav-drawer-link" href="/" onclick="closeNav()">Home</a>
   <a class="nav-drawer-link" href="/map" onclick="closeNav()">Map</a>
   <a class="nav-drawer-link active" href="/about" onclick="closeNav()">About</a>
-  <a class="nav-drawer-link" href="/changelog" onclick="closeNav()">Changelog</a>
+  <a class="nav-drawer-link" href="/changelog" onclick="closeNav()">Data Notes</a>
 </div>
 
 <!-- Hero -->
