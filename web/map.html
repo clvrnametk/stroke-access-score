@@ -2248,8 +2248,8 @@
       if (S.selectedZip) {
         const d = S.data.get(S.selectedZip);
         if (d) {
-          const card = document.getElementById('detail-card');
-          if (card) card.innerHTML = buildDetailCardHTML(S.selectedZip, d);
+          const content = document.getElementById('detail-content');
+          if (content) content.innerHTML = buildDetailCardHTML(S.selectedZip, d);
         }
       }
     }
