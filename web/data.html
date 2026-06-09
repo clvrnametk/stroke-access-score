@@ -81,7 +81,7 @@ nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 5
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--divider);
 }
-table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 900px; }
+table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 1600px; }
 thead th {
   position: sticky;
   top: 0;            /* relative to scroll container, not viewport */
@@ -222,11 +222,16 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
     <thead>
       <tr>
         <th data-col="zcta">ZIP Code</th>
+        <th data-col="total_pop">Population</th>
         <th data-col="sas_score">SAS Score</th>
         <th data-col="access_level">Access Level</th>
         <th data-col="best_facility_name">Nearest Stroke Center</th>
         <th data-col="best_facility_type">Cert.</th>
-        <th data-col="drive_minutes">Drive Time</th>
+        <th data-col="best_facility_drive_mins">Drive Time</th>
+        <th data-col="best_facility_drive_miles">Distance</th>
+        <th data-col="nearest_csc_name">Nearest CSC</th>
+        <th data-col="nearest_csc_drive_mins">CSC Drive Time</th>
+        <th data-col="nearest_csc_drive_miles">CSC Distance</th>
         <th data-col="pct_hispanic">% Hispanic</th>
         <th data-col="pct_black_nh">% Black</th>
         <th data-col="pct_white_nh">% White</th>
@@ -328,31 +333,30 @@ async function loadData() {
     fetch('./ca_zip_scores.csv'),
     fetch('./drive_time_cache.json'),
   ]);
-  const [csvText, cache] = await Promise.all([csvRes.text(), cacheRes.json()]);
-
-  // Build drive-time lookup: "zcta_facilityId" → minutes
-  const driveMap = new Map();
-  Object.values(cache).forEach(({zcta, facility_id, drive_minutes}) => {
-    driveMap.set(`${zcta}_${facility_id}`, drive_minutes);
-  });
+  // Only CSV needed now — drive times are in the CSV directly
+  const [csvText] = await Promise.all([csvRes.text(), cacheRes.json()]);
 
   const rows = parseCSV(csvText);
   allRows = rows
     .filter(r => isLA(r.zcta))
     .map(r => {
       const score = num(r.sas_score);
-      const mins  = driveMap.get(`${r.zcta}_${r.best_facility_id}`) ?? null;
       return {
-        zcta:               r.zcta,
-        sas_score:          score,
-        access_level:       score === null ? '' : score < 40 ? 'Limited' : score < 70 ? 'Moderate' : 'Strong',
-        best_facility_name: r.best_facility_name || '—',
-        best_facility_type: normCert(r.best_facility_type) || r.best_facility_type || '—',
-        drive_minutes:      mins,
-        pct_hispanic:       num(r.pct_hispanic, 0),
-        pct_black_nh:       num(r.pct_black_nh, 0),
-        pct_white_nh:       num(r.pct_white_nh, 0),
-        median_hh_income:   num(r.median_hh_income),
+        zcta:                   r.zcta,
+        total_pop:              num(r.total_pop, 0),
+        sas_score:              score,
+        access_level:           score === null ? '' : score < 40 ? 'Limited' : score < 70 ? 'Moderate' : 'Strong',
+        best_facility_name:     r.best_facility_name || '—',
+        best_facility_type:     normCert(r.best_facility_type) || r.best_facility_type || '—',
+        best_facility_drive_mins:  num(r.best_facility_drive_mins),
+        best_facility_drive_miles: num(r.best_facility_drive_miles),
+        nearest_csc_name:       r.nearest_csc_name  || '',
+        nearest_csc_drive_mins: num(r.nearest_csc_drive_mins),
+        nearest_csc_drive_miles:num(r.nearest_csc_drive_miles),
+        pct_hispanic:           num(r.pct_hispanic, 0),
+        pct_black_nh:           num(r.pct_black_nh, 0),
+        pct_white_nh:           num(r.pct_white_nh, 0),
+        median_hh_income:       num(r.median_hh_income),
         sev:  +r.socioeconomic_vulnerability_flag || 0,
         crf:  +r.clinical_risk_flag               || 0,
         dj:   +r.double_jeopardy_flag             || 0,
@@ -380,7 +384,8 @@ function applyFilterSort() {
   filteredRows = allRows.filter(r =>
     !q ||
     r.zcta.includes(q) ||
-    r.best_facility_name.toLowerCase().includes(q)
+    r.best_facility_name.toLowerCase().includes(q) ||
+    (r.nearest_csc_name && r.nearest_csc_name.toLowerCase().includes(q))
   );
   filteredRows.sort((a, b) => {
     let av = a[sortCol], bv = b[sortCol];
@@ -434,15 +439,24 @@ function flagsCell(r) {
   return f.length ? `<td><div class="flag-wrap">${f.join('')}</div></td>` : '<td>—</td>';
 }
 
+function mins(v)  { return v != null ? v.toFixed(1) + ' min' : '—'; }
+function miles(v) { return v != null ? v.toFixed(1) + ' mi'  : '—'; }
+function pop(v)   { return v != null ? Math.round(v).toLocaleString() : '—'; }
+
 function renderTable() {
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = filteredRows.map(r => `<tr>
     <td class="zip">${r.zcta}</td>
+    <td style="text-align:right">${pop(r.total_pop)}</td>
     ${scoreCell(r.sas_score)}
     ${accessCell(r.access_level)}
-    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.best_facility_name}">${r.best_facility_name}</td>
+    <td style="white-space:nowrap" title="${r.best_facility_name}">${r.best_facility_name}</td>
     ${certCell(r.best_facility_type)}
-    <td>${r.drive_minutes != null ? r.drive_minutes.toFixed(1) + ' min' : '—'}</td>
+    <td style="white-space:nowrap">${mins(r.best_facility_drive_mins)}</td>
+    <td style="white-space:nowrap">${miles(r.best_facility_drive_miles)}</td>
+    <td style="white-space:nowrap;color:${r.nearest_csc_name ? 'inherit' : '#bbb'}">${r.nearest_csc_name || '—'}</td>
+    <td style="white-space:nowrap">${mins(r.nearest_csc_drive_mins)}</td>
+    <td style="white-space:nowrap">${miles(r.nearest_csc_drive_miles)}</td>
     <td>${pct(r.pct_hispanic)}</td>
     <td>${pct(r.pct_black_nh)}</td>
     <td>${pct(r.pct_white_nh)}</td>
@@ -475,19 +489,24 @@ document.getElementById('search-input').addEventListener('input', e => {
 // ── Downloads ──
 function exportRows() {
   return filteredRows.map(r => ({
-    'ZIP Code':          r.zcta,
-    'SAS Score':         r.sas_score ?? '',
-    'Access Level':      r.access_level,
-    'Nearest Facility':  r.best_facility_name,
-    'Cert. Level':       r.best_facility_type,
-    'Drive Time (min)':  r.drive_minutes != null ? r.drive_minutes.toFixed(1) : '',
-    '% Hispanic':        r.pct_hispanic != null ? r.pct_hispanic.toFixed(1) : '',
-    '% Black':           r.pct_black_nh != null ? r.pct_black_nh.toFixed(1) : '',
-    '% White':           r.pct_white_nh != null ? r.pct_white_nh.toFixed(1) : '',
-    'Median Income':     r.median_hh_income != null ? Math.round(r.median_hh_income) : '',
-    'SEV Flag':          r.sev,
-    'CRF Flag':          r.crf,
-    'Double Jeopardy':   r.dj,
+    'ZIP Code':                 r.zcta,
+    'Population':               r.total_pop ?? '',
+    'SAS Score':                r.sas_score ?? '',
+    'Access Level':             r.access_level,
+    'Nearest Stroke Center':    r.best_facility_name,
+    'Cert. Level':              r.best_facility_type,
+    'Drive Time (min)':         r.best_facility_drive_mins  != null ? r.best_facility_drive_mins.toFixed(1)  : '',
+    'Distance (mi)':            r.best_facility_drive_miles != null ? r.best_facility_drive_miles.toFixed(1) : '',
+    'Nearest CSC':              r.nearest_csc_name || '',
+    'CSC Drive Time (min)':     r.nearest_csc_drive_mins  != null ? r.nearest_csc_drive_mins.toFixed(1)  : '',
+    'CSC Distance (mi)':        r.nearest_csc_drive_miles != null ? r.nearest_csc_drive_miles.toFixed(1) : '',
+    '% Hispanic':               r.pct_hispanic  != null ? r.pct_hispanic.toFixed(1)  : '',
+    '% Black':                  r.pct_black_nh  != null ? r.pct_black_nh.toFixed(1)  : '',
+    '% White':                  r.pct_white_nh  != null ? r.pct_white_nh.toFixed(1)  : '',
+    'Median Income':            r.median_hh_income != null ? Math.round(r.median_hh_income) : '',
+    'SEV Flag':                 r.sev,
+    'CRF Flag':                 r.crf,
+    'Double Jeopardy':          r.dj,
   }));
 }
 function downloadCSV() {
