@@ -212,6 +212,31 @@ nav {
 .s-pending { background: #d97706; color: #fff; }
 .s-future  { background: #555;    color: #fff; }
 
+/* ── Scoring models section ── */
+.models-section {
+  background: var(--bg); padding: 56px 24px 64px;
+  border-top: 1px solid var(--divider);
+}
+.models-section .inner { max-width: 820px; margin: 0 auto; }
+.models-section h2 {
+  font-size: clamp(1.3rem,3vw,1.8rem); color: var(--navy); margin-bottom: 8px;
+  border-left: 4px solid var(--pink); padding-left: 14px;
+}
+.models-section p { margin-top: 12px; color: var(--text); font-size: .97rem; max-width: 700px; }
+.model-block { margin-top: 28px; }
+.model-block-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.model-block-header h3 { font-size: 1.05rem; color: var(--navy); }
+.model-default-badge {
+  display: inline-block; padding: 2px 10px; background: var(--navy); color: #fff;
+  font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+.model-research-badge {
+  display: inline-block; padding: 2px 10px; background: #555; color: #fff;
+  font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+
 /* ── What's next ── */
 .whats-next {
   background: var(--navy); color: #fff;
@@ -684,6 +709,91 @@ footer {
     <p style="margin-top:14px;font-size:.82rem;color:rgba(255,255,255,.45)">
       Total ZIP codes scored statewide: <span id="status-total-count" style="color:rgba(255,255,255,.75);font-weight:500">—</span>
     </p>
+  </div>
+</div>
+
+<!-- Scoring Models -->
+<div class="models-section">
+  <div class="inner">
+    <span class="section-label">Current Methodology</span>
+    <h2>Scoring Models</h2>
+    <p>
+      The site includes two scoring models, selectable via the toggle in the navigation bar.
+      Both models use only CSC and PSC certification tiers — TSC is excluded as it is not a
+      recognized EMS destination category in California, and ASRH is excluded from both models.
+    </p>
+    <p>
+      The <strong>Primary Model</strong> is the default and is recommended for all general-purpose
+      use. The <strong>Sensitivity Model</strong> is a research comparison tool — it exists to
+      isolate the methodological effect of switching from two-threshold flat penalties to
+      15-minute drive time increments. It is not an alternative clinical recommendation.
+    </p>
+
+    <!-- Primary Model -->
+    <div class="model-block">
+      <div class="model-block-header">
+        <h3>Primary Model</h3>
+        <span class="model-default-badge">Default</span>
+      </div>
+      <p>
+        CSC-weighted scoring with 15-minute drive time increments. Developed in collaboration
+        with James Beavis RN BSN SCRN (Cedars-Sinai). Comprehensive Stroke Centers are
+        weighted heavily as the only facilities capable of mechanical thrombectomy. Primary
+        Stroke Centers provide modest mitigation only.
+      </p>
+      <table class="score-table" style="max-width:460px">
+        <thead>
+          <tr>
+            <th>Drive Time</th>
+            <th><span class="badge csc">CSC</span> Score</th>
+            <th><span class="badge psc">PSC</span> Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>0–15 min</td><td>100</td><td>40</td></tr>
+          <tr><td>15–30 min</td><td>85</td><td>32</td></tr>
+          <tr><td>30–45 min</td><td>65</td><td>24</td></tr>
+          <tr><td>45–60 min</td><td>50</td><td>16</td></tr>
+          <tr><td>&gt;60 min</td><td>25</td><td>8</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Sensitivity Model -->
+    <div class="model-block">
+      <div class="model-block-header">
+        <h3>Sensitivity Model</h3>
+        <span class="model-research-badge">Research Comparison</span>
+      </div>
+      <p>
+        Same certification tiers (CSC and PSC only), but uses flat penalties at two thresholds
+        rather than 15-minute increments. This mirrors the penalty structure used prior to the
+        Data Update #2 revision.
+      </p>
+      <table class="score-table" style="max-width:460px">
+        <thead>
+          <tr>
+            <th>Drive Time</th>
+            <th><span class="badge csc">CSC</span> Score</th>
+            <th><span class="badge psc">PSC</span> Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>0–30 min</td><td>100</td><td>50</td></tr>
+          <tr><td>30–60 min</td><td>70</td><td>35</td></tr>
+          <tr><td>&gt;60 min</td><td>55</td><td>20</td></tr>
+        </tbody>
+      </table>
+      <div class="correction-note" style="margin-top:16px;max-width:640px">
+        The Sensitivity Model is intended for researchers comparing methodological approaches.
+        Switching to this model lets you observe how the score distribution changes when the
+        two-threshold flat penalty structure is substituted for 15-minute increments — isolating
+        the structural effect of the scoring model from changes in hospital certification data.
+        <strong>It is not a clinical recommendation and should not be interpreted as an
+        alternative assessment of stroke care access.</strong>
+      </div>
+    </div>
+
   </div>
 </div>
 
