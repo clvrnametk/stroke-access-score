@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-09T14:54:20.717867+00:00",
+  "generated_at": "2026-06-09T15:24:51.515977+00:00",
   "levels": {
     "CSC": {
       "label": "Comprehensive Stroke Center",
@@ -158,5 +158,47 @@
         "ASRH": 0
       }
     }
-  ]
+  ],
+  "models": {
+    "primary": {
+      "name": "Primary Model",
+      "description": "CSC-weighted with 15-minute drive time increments.",
+      "default": true,
+      "csv_column": "sas_score",
+      "levels": {
+        "CSC": {
+          "15": 100,
+          "30": 85,
+          "45": 65,
+          "60": 50,
+          "9999": 25
+        },
+        "PSC": {
+          "15": 40,
+          "30": 32,
+          "45": 24,
+          "60": 16,
+          "9999": 8
+        }
+      }
+    },
+    "sensitivity": {
+      "name": "Sensitivity Model",
+      "description": "Research comparison \u2014 flat penalty structure. Two threshold penalties at 30 and 60 minutes. Use to isolate the effect of 15-minute increment scoring vs. two-threshold penalties.",
+      "default": false,
+      "csv_column": "sas_score_sensitivity",
+      "levels": {
+        "CSC": {
+          "30": 100,
+          "60": 70,
+          "9999": 55
+        },
+        "PSC": {
+          "30": 50,
+          "60": 35,
+          "9999": 20
+        }
+      }
+    }
+  }
 }

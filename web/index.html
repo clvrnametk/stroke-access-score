@@ -199,6 +199,32 @@ footer {
 .footer-tagline { font-size: .85rem; }
 .footer-note { max-width: 420px; font-size: .82rem; line-height: 1.6; color: rgba(255,255,255,.45); }
 
+/* ── Model toggle ── */
+.model-toggle {
+  display: flex; align-items: center;
+  background: rgba(255,255,255,.12); border-radius: 999px !important; padding: 3px; gap: 0;
+}
+.model-btn {
+  padding: 0 13px; height: 27px; border: none; background: transparent;
+  color: rgba(255,255,255,.65); font-family: 'Roboto', sans-serif; font-size: .76rem;
+  font-weight: 500; cursor: pointer; border-radius: 999px !important;
+  transition: background .15s, color .15s; white-space: nowrap;
+}
+.model-btn.active { background: #fff; color: var(--navy); }
+.model-btn:not(.active):hover { color: #fff; }
+@media (max-width: 768px) { .model-toggle { display: none; } }
+.nav-drawer-model { padding: 10px 24px 6px; border-top: 1px solid rgba(255,255,255,.1); margin-top: 4px; }
+.nav-drawer-model-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.4); margin-bottom: 6px; }
+.nav-drawer-model-btns { display: flex; gap: 6px; }
+.nav-drawer-model-btn {
+  flex: 1; padding: 7px 0; border: 1px solid rgba(255,255,255,.2);
+  background: transparent; color: rgba(255,255,255,.7); font-family: 'Roboto', sans-serif;
+  font-size: .82rem; font-weight: 500; cursor: pointer; text-align: center;
+  border-radius: 999px !important; transition: background .15s, color .15s;
+}
+.nav-drawer-model-btn.active { background: #fff; color: var(--navy); border-color: #fff; }
+.nav-drawer-model-btn:not(.active):hover { color: #fff; border-color: rgba(255,255,255,.5); }
+
 /* ── Region toggle ── */
 .region-toggle { display: flex; justify-content: center; margin-bottom: 28px; }
 .region-toggle-inner {
@@ -265,6 +291,7 @@ footer {
     <a class="nav-link" href="/data">Data</a>
     <a class="nav-link" href="/changelog">Data Notes</a>
   </div>
+  <div class="model-toggle" id="model-toggle" aria-label="Scoring model"></div>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
     <span></span><span></span><span></span>
   </button>
@@ -275,6 +302,10 @@ footer {
   <a class="nav-drawer-link" href="/about" onclick="closeNav()">About</a>
   <a class="nav-drawer-link" href="/data" onclick="closeNav()">Data</a>
   <a class="nav-drawer-link" href="/changelog" onclick="closeNav()">Data Notes</a>
+  <div class="nav-drawer-model" id="drawer-model-section" style="display:none">
+    <div class="nav-drawer-model-label">Scoring Model</div>
+    <div class="nav-drawer-model-btns" id="drawer-model-btns"></div>
+  </div>
 </div>
 
 <!-- Hero -->
@@ -501,11 +532,15 @@ function setRegion(region) {
 
 /* ── Populate all stats + region-specific copy ── */
 function populateStats(data, q1, q3, region) {
+  // gs(d): returns the score for the currently active model
+  const gs = d => (window.SASActiveModel === 'sensitivity' && d.sas_score_sensitivity != null)
+    ? d.sas_score_sensitivity : d.sas_score;
+
   const all    = [...data.values()];
-  const scored = all.filter(d => d.sas_score !== null);
+  const scored = all.filter(d => gs(d) !== null);
   const _cfg   = window.SASConfig && window.SASConfig.tiers;
   const medMin = _cfg ? _cfg.medium.min : 40;
-  const low    = scored.filter(d => d.sas_score < medMin);
+  const low    = scored.filter(d => gs(d) < medMin);
   const djf    = all.filter(d => d.double_jeopardy_flag === 1);
   const mm     = scored.filter(d => d.is_majority_minority === 1);
   const nonMM  = scored.filter(d => d.is_majority_minority === 0);
@@ -513,7 +548,7 @@ function populateStats(data, q1, q3, region) {
   const botQ   = scored.filter(d => d.median_hh_income !== null && d.median_hh_income <= q1);
 
   // Score-based quartiles for income gap (robust: always computable regardless of access distribution)
-  const byScore  = [...scored].filter(d => d.median_hh_income !== null).sort((a,b) => a.sas_score - b.sas_score);
+  const byScore  = [...scored].filter(d => d.median_hh_income !== null).sort((a,b) => gs(a) - gs(b));
   const qSize    = Math.floor(byScore.length / 4);
   const scoreBot = byScore.slice(0, qSize);           // bottom 25% by score
   const scoreTop = byScore.slice(byScore.length - qSize); // top 25% by score
@@ -527,19 +562,19 @@ function populateStats(data, q1, q3, region) {
   document.getElementById('s-djf').textContent    = djf.length.toLocaleString();
 
   // ── Critical findings banner ──
-  const incHi     = mean(topQ.map(d => d.sas_score));
-  const incLo     = mean(botQ.map(d => d.sas_score));
+  const incHi     = mean(topQ.map(d => gs(d)));
+  const incLo     = mean(botQ.map(d => gs(d)));
   const incGap    = incHi - incLo;
-  const nonMMMean = mean(nonMM.map(d => d.sas_score));
-  const mmMean    = mean(mm.map(d => d.sas_score));
+  const nonMMMean = mean(nonMM.map(d => gs(d)));
+  const mmMean    = mean(mm.map(d => gs(d)));
   const racialGap = nonMMMean - mmMean;
   document.getElementById('cf-income-gap').textContent = fmtGap(incGap);
   document.getElementById('cf-racial-gap').textContent = fmtGap(racialGap);
   document.getElementById('cf-risk-pop').textContent   = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
 
   // ── Findings cards ──
-  document.getElementById('f-inc-hi').textContent  = incHi.toFixed(1);
-  document.getElementById('f-inc-lo').textContent  = incLo.toFixed(1);
+  document.getElementById('f-inc-hi').textContent  = incHi.toFixed ? incHi.toFixed(1) : '—';
+  document.getElementById('f-inc-lo').textContent  = incLo.toFixed ? incLo.toFixed(1) : '—';
   document.getElementById('f-nonmm').textContent   = nonMMMean.toFixed(1);
   document.getElementById('f-mm').textContent      = mmMean.toFixed(1);
   document.getElementById('f-djf-pop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
@@ -588,6 +623,7 @@ async function init() {
       const entry = {
         zcta: zip,
         sas_score: num(r.sas_score),
+        sas_score_sensitivity: num(r.sas_score_sensitivity),
         total_pop: num(r.total_pop, 0),
         median_hh_income: inc,
         is_majority_minority: +r.is_majority_minority || 0,
@@ -610,6 +646,12 @@ async function init() {
 
     document.getElementById('loading').style.opacity = '0';
     setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 400);
+
+    // Init model toggle after config loads
+    fetch('./scoring_config.json').then(r=>r.ok?r.json():null).then(cfg=>{
+      if(cfg){ window.SASConfig=cfg; initModelToggle(); }
+    }).catch(()=>{});
+
     setRegion('la'); // default to LA County
   } catch(err) {
     document.getElementById('loading').style.display = 'none';
@@ -618,6 +660,45 @@ async function init() {
     document.getElementById('error-msg').textContent = err.message;
     console.error(err);
   }
+}
+
+/* ── Model toggle ── */
+function initModelToggle() {
+  const models = window.SASConfig && window.SASConfig.models;
+  if (!models || Object.keys(models).length < 2) return;
+  const saved = localStorage.getItem('sas_model');
+  window.SASActiveModel = (saved && models[saved]) ? saved
+    : Object.keys(models).find(k => models[k].default) || 'primary';
+  const container = document.getElementById('model-toggle');
+  if (container) {
+    container.innerHTML = Object.entries(models).map(([id, m]) =>
+      `<button class="model-btn${id===window.SASActiveModel?' active':''}" data-model="${id}"
+         ${!m.default?`title="${m.description}"`:''}
+         onclick="setModel('${id}')">${m.name}${!m.default?' <span aria-hidden="true" style="font-size:.7rem;opacity:.7">ⓘ</span>':''}</button>`
+    ).join('');
+  }
+  const sec = document.getElementById('drawer-model-section');
+  const btns = document.getElementById('drawer-model-btns');
+  if (sec && btns) {
+    sec.style.display = '';
+    btns.innerHTML = Object.entries(models).map(([id, m]) =>
+      `<button class="nav-drawer-model-btn${id===window.SASActiveModel?' active':''}" data-model="${id}"
+         ${!m.default?`title="${m.description}"`:''}
+         onclick="setModel('${id}');closeNav()">${m.name}</button>`
+    ).join('');
+  }
+}
+function setModel(id) {
+  if (id === window.SASActiveModel) return;
+  window.SASActiveModel = id;
+  localStorage.setItem('sas_model', id);
+  document.querySelectorAll('.model-btn, .nav-drawer-model-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.model === id)
+  );
+  onModelChanged(id);
+}
+function onModelChanged(id) {
+  setRegion(S.region);
 }
 
 /* ── Nav ── */

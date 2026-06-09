@@ -148,6 +148,38 @@
     #nav-drawer a:hover,
     #nav-drawer a.active { color: #fff; background: rgba(255,255,255,.07); }
 
+    /* ── Model toggle ── */
+    .model-toggle {
+      display: flex; align-items: center; margin-left: auto; margin-right: 12px;
+      background: rgba(255,255,255,.12); border-radius: 999px !important; padding: 3px; gap: 0;
+    }
+    .model-btn {
+      padding: 0 13px; height: 27px; border: none; background: transparent;
+      color: rgba(255,255,255,.65); font-family: 'Roboto', sans-serif; font-size: .76rem;
+      font-weight: 500; cursor: pointer; border-radius: 999px !important;
+      transition: background .15s, color .15s; white-space: nowrap;
+    }
+    .model-btn.active { background: #fff; color: var(--navy); }
+    .model-btn:not(.active):hover { color: #fff; }
+    /* Mobile: hide toggle in top nav, render inside drawer instead */
+    @media (max-width: 768px) { .model-toggle { display: none; } }
+    .drawer-model-section {
+      padding: 10px 20px 6px; border-top: 1px solid rgba(255,255,255,.1); margin-top: 4px;
+    }
+    .drawer-model-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+      color: rgba(255,255,255,.4); margin-bottom: 6px;
+    }
+    .drawer-model-btns { display: flex; gap: 6px; }
+    .drawer-model-btn {
+      flex: 1; padding: 7px 0; border: 1px solid rgba(255,255,255,.2);
+      background: transparent; color: rgba(255,255,255,.7); font-family: 'Roboto', sans-serif;
+      font-size: .82rem; font-weight: 500; cursor: pointer; text-align: center;
+      border-radius: 999px !important; transition: background .15s, color .15s;
+    }
+    .drawer-model-btn.active { background: #fff; color: var(--navy); border-color: #fff; }
+    .drawer-model-btn:not(.active):hover { color: #fff; border-color: rgba(255,255,255,.5); }
+
     /* ── View Switcher ── */
     #view-switcher {
       position: absolute;
@@ -1024,6 +1056,7 @@
       <a href="/data">Data</a>
       <a href="/changelog">Data Notes</a>
     </div>
+    <div class="model-toggle" id="model-toggle" aria-label="Scoring model"></div>
     <button type="button" class="hamburger" id="hamburger" aria-label="Open navigation" aria-expanded="false" onclick="toggleNav()">
       <span></span><span></span><span></span>
     </button>
@@ -1036,6 +1069,10 @@
     <a href="/about" onclick="closeNav()">About</a>
     <a href="/data" onclick="closeNav()">Data</a>
     <a href="/changelog" onclick="closeNav()">Data Notes</a>
+    <div class="drawer-model-section" id="drawer-model-section" style="display:none">
+      <div class="drawer-model-label">Scoring Model</div>
+      <div class="drawer-model-btns" id="drawer-model-btns"></div>
+    </div>
   </div>
 
   <!-- Map shell -->
@@ -1263,6 +1300,41 @@
       return n.toLocaleString();
     }
 
+    // ─ Scoring model helpers ─
+    function getScoreFromModel(modelDef, level, mins) {
+      const scores = modelDef && modelDef.levels && modelDef.levels[level];
+      if (!scores) return 0;
+      const thresholds = Object.keys(scores).map(Number).sort((a,b) => a - b);
+      for (const t of thresholds) { if (mins <= t) return scores[t]; }
+      return 0;
+    }
+
+    function rescoreWithModel(modelId) {
+      const models = window.SASConfig && window.SASConfig.models;
+      if (!models || !models[modelId]) return;
+      const modelDef = models[modelId];
+      for (const [zip, d] of S.data) {
+        const drives = S.zipDrives.get(zip) || [];
+        let best = 0;
+        for (const {facility_id, drive_minutes} of drives) {
+          const hosp = S.hospitals.get(facility_id);
+          if (!hosp) continue;
+          const s = getScoreFromModel(modelDef, hosp.stroke_level, drive_minutes);
+          if (s > best) best = s;
+        }
+        if (!d._scores) d._scores = {};
+        d._scores[modelId] = best > 0 ? best : null;
+      }
+    }
+
+    // Returns the score for a data object under the currently active model.
+    function activeScore(d) {
+      if (!d) return null;
+      const mid = window.SASActiveModel || 'primary';
+      if (mid === 'primary') return d.sas_score;
+      return (d._scores && d._scores[mid] != null) ? d._scores[mid] : d.sas_score;
+    }
+
     // ─ Colors ─
     function sasColor(s) {
       if (s === null || s === undefined) return '#d7191c';
@@ -1301,7 +1373,7 @@
       if (!d) return '#cccccc';
 
       // My Community: always plain SAS choropleth
-      if (S.currentPageView === 'community') return sasColor(d.sas_score);
+      if (S.currentPageView === 'community') return sasColor(activeScore(d));
 
       // The Disparity: three purposeful data lenses
       switch (S.disparityLayer) {
@@ -1310,11 +1382,11 @@
           if (d.double_jeopardy_flag === 1)              return '#8b0000'; // dark red — worst
           if (d.socioeconomic_vulnerability_flag === 1)  return '#e10087'; // pink
           if (d.clinical_risk_flag === 1)                return '#e67e22'; // orange
-          return sasColor(d.sas_score);                                    // standard tier color
+          return sasColor(activeScore(d));                                  // standard tier color
 
         case 'race':
           // MM + limited access = loudest signal for advocacy
-          if (d.is_majority_minority === 1 && d.sas_score !== null && d.sas_score <= 40)
+          if (d.is_majority_minority === 1 && activeScore(d) !== null && activeScore(d) <= 40)
             return '#d7191c';                            // MM AND low access
           if (d.is_majority_minority === 1) return '#0f0f3c';  // MM, adequate access
           return '#dce0f0';                              // non-MM (quiet)
@@ -1332,8 +1404,8 @@
       const highMin = tiers ? tiers.high.min   : 70;
       switch (S.filter) {
         case 'all':     return true;
-        case 'low':     return d.sas_score !== null && d.sas_score < lowMax;
-        case 'high':    return d.sas_score !== null && d.sas_score >= highMin;
+        case 'low':     return activeScore(d) !== null && activeScore(d) < lowMax;
+        case 'high':    return activeScore(d) !== null && activeScore(d) >= highMin;
         case 'flagged': return d.socioeconomic_vulnerability_flag === 1 || d.clinical_risk_flag === 1 || d.double_jeopardy_flag === 1;
       }
       return true;
@@ -1384,11 +1456,11 @@
           lyr.on('mouseover', e => {
             if (window.innerWidth < 768 || S.selectedZip === zip) return;
             lyr.setStyle(highlightStyle());
-            const score = d?.sas_score != null ? d.sas_score.toFixed(0) : 'N/A';
+            const score = activeScore(d) != null ? activeScore(d).toFixed(0) : 'N/A';
             const fname = d?.best_facility_name
               ? (d.best_facility_name.length > 30 ? d.best_facility_name.slice(0, 28) + '…' : d.best_facility_name)
               : '—';
-            showTip(e, `<strong>ZIP ${zip}</strong><br>Score: <b style="color:${sasColor(d?.sas_score)}">${score}</b><br><span style="font-size:.73rem;color:#666">${fname}</span>`);
+            showTip(e, `<strong>ZIP ${zip}</strong><br>Score: <b style="color:${sasColor(activeScore(d))}">${score}</b><br><span style="font-size:.73rem;color:#666">${fname}</span>`);
           });
 
           lyr.on('mousemove', e => {
@@ -1588,7 +1660,7 @@
     }
 
     function buildDetailCardHTML(zip, d) {
-      const score = d?.sas_score ?? null;
+      const score = activeScore(d);
       const color = sasColor(score);
       const label = scoreLabel(score);
       const drives = S.zipDrives.get(zip) || [];
@@ -1705,7 +1777,7 @@
       hideTip();
 
       // GA
-      const score = d?.sas_score ?? null;
+      const score = activeScore(d);
       const flagType = d?.double_jeopardy_flag === 1 ? 'double_jeopardy'
         : d?.socioeconomic_vulnerability_flag === 1 ? 'sev'
         : d?.clinical_risk_flag === 1 ? 'crf' : 'none';
@@ -1844,7 +1916,7 @@
       const drives = (S.hospitalDrives.get(fid) || []);
       const zipRows = drives.map(e => {
         const d = S.data.get(e.zcta);
-        const sc = d?.sas_score ?? null;
+        const sc = activeScore(d);
         const col = sasColor(sc);
         return `<div class="zip-row" onclick="closeHospitalModal();selectZip('${e.zcta}')">
           <div class="score-dot" style="background:${col}"></div>
@@ -1918,7 +1990,7 @@
     // ─ Findings stats ─
     function computeFindingsStats() {
       const all = [...S.data.values()];
-      const scored = all.filter(d => d.sas_score !== null);
+      const scored = all.filter(d => activeScore(d) !== null);
       const topQ = scored.filter(d => d.median_hh_income !== null && d.median_hh_income >= S.incomeQ3);
       const botQ = scored.filter(d => d.median_hh_income !== null && d.median_hh_income <= S.incomeQ1);
       const mm   = scored.filter(d => d.is_majority_minority === 1);
@@ -1926,8 +1998,8 @@
       const djf  = all.filter(d => d.double_jeopardy_flag === 1);
 
       const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-      const gap  = mean(topQ.map(d => d.sas_score)) - mean(botQ.map(d => d.sas_score));
-      const rGap = mean(nonMM.map(d => d.sas_score)) - mean(mm.map(d => d.sas_score));
+      const gap  = mean(topQ.map(d => activeScore(d))) - mean(botQ.map(d => activeScore(d)));
+      const rGap = mean(nonMM.map(d => activeScore(d))) - mean(mm.map(d => activeScore(d)));
       const djfPop = djf.reduce((s, d) => s + d.total_pop, 0);
 
       const fmt = n => (n >= 0 ? '+' : '') + n.toFixed(1);
@@ -1996,7 +2068,7 @@
       const matches = [];
       for (const [zip, d] of S.data) {
         if (zip.startsWith(prefix)) {
-          matches.push({ zip, score: d.sas_score });
+          matches.push({ zip, score: activeScore(d) });
           if (matches.length >= 10) break;
         }
       }
@@ -2114,13 +2186,76 @@
       document.getElementById('hamburger').setAttribute('aria-expanded', 'false');
     }
 
+    // ── Model toggle ──────────────────────────────────────────────────────────
+    function initModelToggle() {
+      const models = window.SASConfig && window.SASConfig.models;
+      if (!models || Object.keys(models).length < 2) return; // only show with 2+ models
+      const saved = localStorage.getItem('sas_model');
+      window.SASActiveModel = (saved && models[saved]) ? saved
+        : Object.keys(models).find(k => models[k].default) || 'primary';
+
+      // Desktop toggle
+      const container = document.getElementById('model-toggle');
+      if (container) {
+        container.innerHTML = Object.entries(models).map(([id, m]) =>
+          `<button class="model-btn${id === window.SASActiveModel ? ' active' : ''}"
+             data-model="${id}"
+             ${!m.default ? `title="${m.description}"` : ''}
+             onclick="setModel('${id}')">${m.name}${!m.default ? ' <span aria-hidden="true" style="font-size:.7rem;opacity:.7">ⓘ</span>' : ''}</button>`
+        ).join('');
+      }
+
+      // Mobile drawer section
+      const sec = document.getElementById('drawer-model-section');
+      const btns = document.getElementById('drawer-model-btns');
+      if (sec && btns) {
+        sec.style.display = '';
+        btns.innerHTML = Object.entries(models).map(([id, m]) =>
+          `<button class="drawer-model-btn${id === window.SASActiveModel ? ' active' : ''}"
+             data-model="${id}"
+             ${!m.default ? `title="${m.description}"` : ''}
+             onclick="setModel('${id}');closeNav()">${m.name}</button>`
+        ).join('');
+      }
+    }
+
+    function setModel(id) {
+      if (id === window.SASActiveModel) return;
+      window.SASActiveModel = id;
+      localStorage.setItem('sas_model', id);
+      document.querySelectorAll('.model-btn, .drawer-model-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.model === id)
+      );
+      onModelChanged(id);
+    }
+
+    function onModelChanged(id) {
+      // Lazy compute sensitivity scores on first switch (primary always in d.sas_score)
+      if (id !== 'primary') {
+        const first = [...S.data.values()][0];
+        if (!first?._scores?.[id]) rescoreWithModel(id);
+      }
+      if (S.geoLayer) S.geoLayer.setStyle(styleFor);
+      S.caStats = calcCAStats();
+      updateLegend();
+      computeFindingsStats();
+      // Rebuild open detail card with new scores
+      if (S.selectedZip) {
+        const d = S.data.get(S.selectedZip);
+        if (d) {
+          const card = document.getElementById('detail-card');
+          if (card) card.innerHTML = buildDetailCardHTML(S.selectedZip, d);
+        }
+      }
+    }
+
     // ── Slide export ─────────────────────────────────────────────────────────
 
     function calcCAStats() {
       const all     = [...S.data.values()];
-      const scored  = all.filter(d => d.sas_score !== null);
+      const scored  = all.filter(d => activeScore(d) !== null);
       const incomes = all.filter(d => d.median_hh_income !== null);
-      const avgScore  = scored.length  ? scored.reduce((s,d)=>s+d.sas_score,0)          / scored.length  : 73;
+      const avgScore  = scored.length  ? scored.reduce((s,d)=>s+activeScore(d),0)        / scored.length  : 73;
       const avgIncome = incomes.length ? incomes.reduce((s,d)=>s+d.median_hh_income,0)  / incomes.length : 82000;
       const mmPct     = all.length     ? (all.filter(d=>d.is_majority_minority===1).length / all.length)*100 : 48;
       return { avgScore, avgIncome, mmPct };
@@ -2283,7 +2418,7 @@
     }
 
     function buildSlideHTML(zip, d) {
-      const score   = d?.sas_score ?? null;
+      const score   = activeScore(d);
       const color   = sasColor(score);
       const label   = scoreLabel(score).toUpperCase();
       const area    = areaNameCache.get(zip) || '';
@@ -2411,6 +2546,8 @@
         initMap(geo);
         initHospitalLayer();
         S.map.invalidateSize();
+
+        initModelToggle();
 
         // Set initial view
         switchView('community');

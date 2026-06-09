@@ -141,9 +141,21 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
 .footer-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1rem; margin-bottom: 3px; }
 .footer-note { max-width: 400px; font-size: .8rem; color: rgba(255,255,255,.4); line-height: 1.5; }
 
+/* ── Model toggle ── */
+.model-toggle { display: flex; align-items: center; background: rgba(255,255,255,.12); border-radius: 999px !important; padding: 3px; gap: 0; }
+.model-btn { padding: 0 13px; height: 27px; border: none; background: transparent; color: rgba(255,255,255,.65); font-family: 'Roboto', sans-serif; font-size: .76rem; font-weight: 500; cursor: pointer; border-radius: 999px !important; transition: background .15s, color .15s; white-space: nowrap; }
+.model-btn.active { background: #fff; color: var(--navy); }
+.model-btn:not(.active):hover { color: #fff; }
+.nav-drawer-model { padding: 10px 24px 6px; border-top: 1px solid rgba(255,255,255,.1); margin-top: 4px; }
+.nav-drawer-model-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.4); margin-bottom: 6px; }
+.nav-drawer-model-btns { display: flex; gap: 6px; }
+.nav-drawer-model-btn { flex: 1; padding: 7px 0; border: 1px solid rgba(255,255,255,.2); background: transparent; color: rgba(255,255,255,.7); font-family: 'Roboto', sans-serif; font-size: .82rem; font-weight: 500; cursor: pointer; text-align: center; border-radius: 999px !important; transition: background .15s, color .15s; }
+.nav-drawer-model-btn.active { background: #fff; color: var(--navy); border-color: #fff; }
+.nav-drawer-model-btn:not(.active):hover { color: #fff; border-color: rgba(255,255,255,.5); }
+
 /* Responsive */
 @media (max-width: 768px) {
-  .nav-links { display: none; } .hamburger { display: flex; }
+  .nav-links { display: none; } .hamburger { display: flex; } .model-toggle { display: none; }
   .stats-inner { grid-template-columns: repeat(2,1fr); }
   footer { flex-direction: column; }
   .table-outer { padding: 0 12px 32px; }
@@ -167,6 +179,7 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
     <a class="nav-link active" href="/data">Data</a>
     <a class="nav-link" href="/changelog">Data Notes</a>
   </div>
+  <div class="model-toggle" id="model-toggle" aria-label="Scoring model"></div>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
     <span></span><span></span><span></span>
   </button>
@@ -177,6 +190,10 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
   <a href="/about" onclick="closeNav()">About</a>
   <a class="active" href="/data" onclick="closeNav()">Data</a>
   <a href="/changelog" onclick="closeNav()">Data Notes</a>
+  <div class="nav-drawer-model" id="drawer-model-section" style="display:none">
+    <div class="nav-drawer-model-label">Scoring Model</div>
+    <div class="nav-drawer-model-btns" id="drawer-model-btns"></div>
+  </div>
 </div>
 
 <!-- Hero -->
@@ -335,6 +352,11 @@ let searchVal = '';
 
 // ── Load data ──
 async function loadData() {
+  // Load scoring config first so initModelToggle can use it
+  fetch('./scoring_config.json').then(r=>r.ok?r.json():null).then(cfg=>{
+    if(cfg){ window.SASConfig=cfg; initModelToggle(); }
+  }).catch(()=>{});
+
   const [csvRes, cacheRes] = await Promise.all([
     fetch('./ca_zip_scores.csv'),
     fetch('./drive_time_cache.json'),
@@ -351,7 +373,8 @@ async function loadData() {
         zcta:                   r.zcta,
         total_pop:              num(r.total_pop, 0),
         sas_score:              score,
-        access_level:           score === null ? '' : score <= 24 ? 'Very Limited' : score <= 40 ? 'Limited' : score <= 55 ? 'Moderate-Low' : score <= 70 ? 'Moderate' : score <= 85 ? 'Good' : 'Strong',
+        sas_score_sensitivity:  num(r.sas_score_sensitivity),
+        access_level:           computeAccessLevel(num(r.sas_score)),
         best_facility_name:     r.best_facility_name || '—',
         best_facility_type:     normCert(r.best_facility_type) || r.best_facility_type || '—',
         best_facility_drive_mins:  num(r.best_facility_drive_mins),
@@ -376,12 +399,29 @@ async function loadData() {
   document.getElementById('data-table').style.display  = 'table';
 }
 
+function activeRowScore(r) {
+  return (window.SASActiveModel === 'sensitivity' && r.sas_score_sensitivity != null)
+    ? r.sas_score_sensitivity : r.sas_score;
+}
+
+function computeAccessLevel(score) {
+  if (score === null || score === undefined) return '';
+  const s = activeRowScore({ sas_score: score, sas_score_sensitivity: null });
+  if (s <= 24) return 'Very Limited';
+  if (s <= 40) return 'Limited';
+  if (s <= 55) return 'Moderate-Low';
+  if (s <= 70) return 'Moderate';
+  if (s <= 85) return 'Good';
+  return 'Strong';
+}
+
 function populateStats() {
-  const scored = allRows.filter(r => r.sas_score !== null);
+  const gs = r => activeRowScore(r);
+  const scored = allRows.filter(r => gs(r) !== null);
   document.getElementById('st-total').textContent   = scored.length;
-  document.getElementById('st-limited').textContent = scored.filter(r => r.sas_score <= 40).length;
-  document.getElementById('st-moderate').textContent= scored.filter(r => r.sas_score > 40 && r.sas_score <= 70).length;
-  document.getElementById('st-strong').textContent  = scored.filter(r => r.sas_score > 70).length;
+  document.getElementById('st-limited').textContent = scored.filter(r => gs(r) <= 40).length;
+  document.getElementById('st-moderate').textContent= scored.filter(r => gs(r) > 40 && gs(r) <= 70).length;
+  document.getElementById('st-strong').textContent  = scored.filter(r => gs(r) > 70).length;
 }
 
 // ── Filter + Sort ──
@@ -426,9 +466,10 @@ function accessClass(a) {
   if (a === 'Good')          return 'access-good';
   return 'access-strong';
 }
-function scoreCell(s) {
-  if (s === null) return '<td>—</td>';
-  return `<td><span class="score-badge ${scoreClass(s)}">${s.toFixed(0)}</span></td>`;
+function scoreCell(s, row) {
+  const display = row ? activeRowScore(row) : s;
+  if (display === null) return '<td>—</td>';
+  return `<td><span class="score-badge ${scoreClass(display)}">${display.toFixed(0)}</span></td>`;
 }
 function accessCell(a) {
   if (!a) return '<td>—</td>';
@@ -468,7 +509,7 @@ function renderTable() {
   tbody.innerHTML = filteredRows.map(r => `<tr>
     <td class="zip">${r.zcta}</td>
     <td style="text-align:right">${pop(r.total_pop)}</td>
-    ${scoreCell(r.sas_score)}
+    ${scoreCell(r.sas_score, r)}
     ${accessCell(r.access_level)}
     <td style="white-space:nowrap" title="${r.best_facility_name}">${r.best_facility_name}</td>
     ${certCell(r.best_facility_type)}
@@ -552,6 +593,52 @@ function downloadExcel() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'LA County SAS Data');
   XLSX.writeFile(wb, 'la-county-sas-data.xlsx');
+}
+
+// ── Model toggle ──
+function initModelToggle() {
+  const models = window.SASConfig && window.SASConfig.models;
+  if (!models || Object.keys(models).length < 2) return;
+  const saved = localStorage.getItem('sas_model');
+  window.SASActiveModel = (saved && models[saved]) ? saved
+    : Object.keys(models).find(k => models[k].default) || 'primary';
+  const container = document.getElementById('model-toggle');
+  if (container) {
+    container.innerHTML = Object.entries(models).map(([id, m]) =>
+      `<button class="model-btn${id===window.SASActiveModel?' active':''}" data-model="${id}"
+         ${!m.default?`title="${m.description}"`:''}
+         onclick="setModel('${id}')">${m.name}${!m.default?' <span aria-hidden="true" style="font-size:.7rem;opacity:.7">ⓘ</span>':''}</button>`
+    ).join('');
+  }
+  const sec = document.getElementById('drawer-model-section');
+  const btns = document.getElementById('drawer-model-btns');
+  if (sec && btns) {
+    sec.style.display = '';
+    btns.innerHTML = Object.entries(models).map(([id, m]) =>
+      `<button class="nav-drawer-model-btn${id===window.SASActiveModel?' active':''}" data-model="${id}"
+         ${!m.default?`title="${m.description}"`:''}
+         onclick="setModel('${id}');closeNav()">${m.name}</button>`
+    ).join('');
+  }
+}
+function setModel(id) {
+  if (id === window.SASActiveModel) return;
+  window.SASActiveModel = id;
+  localStorage.setItem('sas_model', id);
+  document.querySelectorAll('.model-btn, .nav-drawer-model-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.model === id)
+  );
+  onModelChanged(id);
+}
+function onModelChanged(id) {
+  // Recompute access_level for each row under the new model, then re-render
+  allRows.forEach(r => {
+    const s = activeRowScore(r);
+    r.access_level = s === null ? '' : s <= 24 ? 'Very Limited' : s <= 40 ? 'Limited'
+      : s <= 55 ? 'Moderate-Low' : s <= 70 ? 'Moderate' : s <= 85 ? 'Good' : 'Strong';
+  });
+  populateStats();
+  applyFilterSort();
 }
 
 // ── Nav ──

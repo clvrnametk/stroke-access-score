@@ -229,6 +229,32 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   .coverage-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Model toggle ── */
+.model-toggle {
+  display: flex; align-items: center;
+  background: rgba(255,255,255,.12); border-radius: 999px !important; padding: 3px; gap: 0;
+}
+.model-btn {
+  padding: 0 13px; height: 27px; border: none; background: transparent;
+  color: rgba(255,255,255,.65); font-family: 'Roboto', sans-serif; font-size: .76rem;
+  font-weight: 500; cursor: pointer; border-radius: 999px !important;
+  transition: background .15s, color .15s; white-space: nowrap;
+}
+.model-btn.active { background: #fff; color: var(--navy); }
+.model-btn:not(.active):hover { color: #fff; }
+@media (max-width: 768px) { .model-toggle { display: none; } }
+.nav-drawer-model { padding: 10px 24px 6px; border-top: 1px solid rgba(255,255,255,.1); margin-top: 4px; }
+.nav-drawer-model-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.4); margin-bottom: 6px; }
+.nav-drawer-model-btns { display: flex; gap: 6px; }
+.nav-drawer-model-btn {
+  flex: 1; padding: 7px 0; border: 1px solid rgba(255,255,255,.2);
+  background: transparent; color: rgba(255,255,255,.7); font-family: 'Roboto', sans-serif;
+  font-size: .82rem; font-weight: 500; cursor: pointer; text-align: center;
+  border-radius: 999px !important; transition: background .15s, color .15s;
+}
+.nav-drawer-model-btn.active { background: #fff; color: var(--navy); border-color: #fff; }
+.nav-drawer-model-btn:not(.active):hover { color: #fff; border-color: rgba(255,255,255,.5); }
+
 /* Download PDF button — white outline on the navy hero */
 .download-pdf-btn {
   display: inline-flex; align-items: center;
@@ -280,6 +306,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
     <a class="nav-link" href="/data">Data</a>
     <a class="nav-link" href="/changelog">Data Notes</a>
   </div>
+  <div class="model-toggle" id="model-toggle" aria-label="Scoring model"></div>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
     <span></span><span></span><span></span>
   </button>
@@ -290,6 +317,10 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   <a class="nav-drawer-link active" href="/about" onclick="closeNav()">About</a>
   <a class="nav-drawer-link" href="/data" onclick="closeNav()">Data</a>
   <a class="nav-drawer-link" href="/changelog" onclick="closeNav()">Data Notes</a>
+  <div class="nav-drawer-model" id="drawer-model-section" style="display:none">
+    <div class="nav-drawer-model-label">Scoring Model</div>
+    <div class="nav-drawer-model-btns" id="drawer-model-btns"></div>
+  </div>
 </div>
 
 <!-- Hero -->
@@ -598,6 +629,8 @@ fetch('./scoring_config.json')
   .then(r => r.json())
   .then(cfg => {
     window.SASConfig = cfg;
+    initModelToggle();
+    renderCoverageStats(); // re-render with config thresholds now available
     // Penalty table — show CSC and PSC columns only
     const tbody = document.getElementById('penalty-table-body');
     if (tbody && cfg.penalty_table) {
@@ -635,29 +668,73 @@ fetch('./scoring_config.json')
   })
   .catch(() => {}); // silently keep static fallback if config missing
 
+// ── Coverage stats — model-aware ─────────────────────────────────────────────
+let _aboutRows = null; // cached parsed CSV rows
+
+function renderCoverageStats() {
+  if (!_aboutRows) return;
+  const mid = window.SASActiveModel || 'primary';
+  const col = (window.SASConfig && window.SASConfig.models && window.SASConfig.models[mid])
+    ? window.SASConfig.models[mid].csv_column : 'sas_score';
+  const caRows  = _aboutRows.filter(r => r[col] !== '' && r[col] != null);
+  const laRows  = _aboutRows.filter(r => LA_COUNTY_ZIPS.has(r.zcta) && r[col] !== '' && r[col] != null);
+  const _cfg    = window.SASConfig && window.SASConfig.tiers;
+  const medMin  = _cfg ? _cfg.medium.min : 40;
+  const highMin = _cfg ? _cfg.high.min   : 70;
+  const limited  = laRows.filter(r => parseFloat(r[col]) < medMin).length;
+  const moderate = laRows.filter(r => { const s = parseFloat(r[col]); return s >= medMin && s < highMin; }).length;
+  const strong   = laRows.filter(r => parseFloat(r[col]) >= highMin).length;
+  document.getElementById('stat-ca-zips').textContent     = caRows.length.toLocaleString();
+  document.getElementById('stat-la-zips').textContent     = laRows.length.toLocaleString();
+  document.getElementById('stat-la-hospitals').textContent = '341';
+  document.getElementById('stat-la-limited').textContent  = limited.toLocaleString();
+  document.getElementById('stat-la-moderate').textContent = moderate.toLocaleString();
+  document.getElementById('stat-la-strong').textContent   = strong.toLocaleString();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fetch('./ca_zip_scores.csv')
     .then(r => r.text())
-    .then(text => {
-      const rows    = _parseCSV(text);
-      const caRows  = rows.filter(r => r.sas_score !== '');
-      const laRows  = rows.filter(r => LA_COUNTY_ZIPS.has(r.zcta) && r.sas_score !== '');
-      // Use config thresholds if loaded, otherwise fall back to defaults
-      const _cfg    = window.SASConfig && window.SASConfig.tiers;
-      const medMin  = _cfg ? _cfg.medium.min : 40;
-      const highMin = _cfg ? _cfg.high.min   : 70;
-      const limited  = laRows.filter(r => parseFloat(r.sas_score) < medMin).length;
-      const moderate = laRows.filter(r => { const s = parseFloat(r.sas_score); return s >= medMin && s < highMin; }).length;
-      const strong   = laRows.filter(r => parseFloat(r.sas_score) >= highMin).length;
-      document.getElementById('stat-ca-zips').textContent    = caRows.length.toLocaleString();
-      document.getElementById('stat-la-zips').textContent    = laRows.length.toLocaleString();
-      document.getElementById('stat-la-hospitals').textContent = '341';
-      document.getElementById('stat-la-limited').textContent  = limited.toLocaleString();
-      document.getElementById('stat-la-moderate').textContent = moderate.toLocaleString();
-      document.getElementById('stat-la-strong').textContent   = strong.toLocaleString();
-    })
-    .catch(() => {}); // silently fail — stats just stay as "—"
+    .then(text => { _aboutRows = _parseCSV(text); renderCoverageStats(); })
+    .catch(() => {});
 });
+
+// ── Model toggle ──────────────────────────────────────────────────────────────
+function initModelToggle() {
+  const models = window.SASConfig && window.SASConfig.models;
+  if (!models || Object.keys(models).length < 2) return;
+  const saved = localStorage.getItem('sas_model');
+  window.SASActiveModel = (saved && models[saved]) ? saved
+    : Object.keys(models).find(k => models[k].default) || 'primary';
+  const container = document.getElementById('model-toggle');
+  if (container) {
+    container.innerHTML = Object.entries(models).map(([id, m]) =>
+      `<button class="model-btn${id===window.SASActiveModel?' active':''}" data-model="${id}"
+         ${!m.default?`title="${m.description}"`:''}
+         onclick="setModel('${id}')">${m.name}${!m.default?' <span aria-hidden="true" style="font-size:.7rem;opacity:.7">ⓘ</span>':''}</button>`
+    ).join('');
+  }
+  const sec = document.getElementById('drawer-model-section');
+  const btns = document.getElementById('drawer-model-btns');
+  if (sec && btns) {
+    sec.style.display = '';
+    btns.innerHTML = Object.entries(models).map(([id, m]) =>
+      `<button class="nav-drawer-model-btn${id===window.SASActiveModel?' active':''}" data-model="${id}"
+         ${!m.default?`title="${m.description}"`:''}
+         onclick="setModel('${id}');closeNav()">${m.name}</button>`
+    ).join('');
+  }
+}
+function setModel(id) {
+  if (id === window.SASActiveModel) return;
+  window.SASActiveModel = id;
+  localStorage.setItem('sas_model', id);
+  document.querySelectorAll('.model-btn, .nav-drawer-model-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.model === id)
+  );
+  onModelChanged(id);
+}
+function onModelChanged(id) { renderCoverageStats(); }
 
 // ── Methodology PDF — same 960×540 slide format as map PNG export ──────────────
 const AUTHORS = 'James Beavis RN BSN SCRN & Mike Morales';
