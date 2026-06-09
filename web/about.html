@@ -26,7 +26,7 @@
   --white:   #ffffff;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
-html { scroll-behavior: smooth; overflow-x: hidden; }
+html { scroll-behavior: smooth; overflow-x: hidden; background: #0f0f3c; }
 body { font-family: 'Roboto', sans-serif; color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6; overflow-x: hidden; }
 h1,h2,h3 { font-family: 'Roboto Slab', serif; font-weight: 700; }
 a { color: var(--pink); text-decoration: none; }
@@ -642,6 +642,9 @@ let _pdfBlob = null;
 
 async function _buildPDFBlob() {
   await document.fonts.ready;
+  // Temporarily lock scroll so the off-screen render container doesn't affect iOS scroll bounds
+  const savedOverflow = document.documentElement.style.overflow;
+  document.documentElement.style.overflow = 'hidden';
   const { jsPDF } = window.jspdf;
   const pdf  = new jsPDF({ orientation: 'landscape', unit: 'px', format: [960, 540] });
   const slides = [slide1(), slide2(), slide3(), slide4()];
@@ -661,6 +664,8 @@ async function _buildPDFBlob() {
   } finally {
     // Always remove — even if html2canvas throws — so no orphaned elements affect scroll height
     if (container.parentNode) document.body.removeChild(container);
+    // Restore scroll
+    document.documentElement.style.overflow = savedOverflow;
   }
   return new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' });
 }

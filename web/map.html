@@ -32,6 +32,7 @@
     }
 
     html, body { margin: 0; padding: 0; overflow-x: hidden; max-width: 100%; }
+    html { background: #0f0f3c; } /* navy overscroll area on iOS rubber-band */
     body { font-family: 'Roboto', sans-serif; color: var(--text); }
 
     /* Map shell: fixed to fill viewport below the nav bar.
@@ -1767,6 +1768,8 @@
 
       // Toggle body class for layout
       document.body.className = 'view-' + view;
+      // iOS Safari ignores overflow:hidden on body alone — must set on html too
+      document.documentElement.style.overflow = (view === 'community') ? 'hidden' : '';
 
       const onCommunity = view === 'community';
 
@@ -2384,6 +2387,7 @@
 
         // Set initial view
         switchView('community');
+        document.documentElement.style.overflow = 'hidden'; // lock scroll on initial load
 
       } catch (err) {
         document.getElementById('loading').style.display = 'none';
