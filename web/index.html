@@ -24,7 +24,8 @@
   --white:   #ffffff;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
-html { scroll-behavior: smooth; }
+/* overflow-x on BOTH html and body — iOS Safari requires both or it miscalculates scroll height */
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: 'Roboto', sans-serif;
   color: var(--text); background: var(--bg);
@@ -385,7 +386,7 @@ footer {
     <div class="footer-logo">Stroke Access Score</div>
     <div class="footer-tagline">A research project by James Beavis BSN BA &amp; Mike Morales</div>
     <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px">
-      © 2025 James Beavis &amp; Mike Morales ·
+      © <span id="cy"></span> James Beavis &amp; Mike Morales ·
       <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
          style="color:rgba(255,255,255,.4);text-decoration:underline">CC BY 4.0</a>
     </div>
@@ -520,6 +521,10 @@ document.addEventListener('click',e=>{
 });
 
 document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('cy');
+  if (el) el.textContent = new Date().getFullYear();
+});
 </script>
 </body>
 </html>

@@ -26,8 +26,8 @@
   --white:   #ffffff;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
-html { scroll-behavior: smooth; }
-body { font-family: 'Roboto', sans-serif; color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body { font-family: 'Roboto', sans-serif; color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6; overflow-x: hidden; }
 h1,h2,h3 { font-family: 'Roboto Slab', serif; font-weight: 700; }
 a { color: var(--pink); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -462,7 +462,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
     <div class="footer-logo">Stroke Access Score</div>
     <div style="font-size:.85rem">A research project by James Beavis BSN BA &amp; Mike Morales</div>
     <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px">
-      © 2025 James Beavis &amp; Mike Morales ·
+      © <span id="cy"></span> James Beavis &amp; Mike Morales ·
       <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
          style="color:rgba(255,255,255,.4);text-decoration:underline">CC BY 4.0</a>
     </div>
@@ -489,6 +489,10 @@ document.addEventListener('click',e=>{
   const btn=document.getElementById('hamburger');
   if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&!btn.contains(e.target))closeNav();
 });
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('cy');
+  if (el) el.textContent = new Date().getFullYear();
+});
 
 // ── Methodology PDF — same 960×540 slide format as map PNG export ──────────────
 const AUTHORS = 'James Beavis BSN BA & Mike Morales';
@@ -509,7 +513,7 @@ function slideShell(leftHTML, rightHTML) {
     <div style="background:#0f0f3c;padding:7px 32px;display:flex;
       justify-content:space-between;align-items:center;flex-shrink:0">
       <span style="color:rgba(255,255,255,.7);font-size:9px;font-family:'Roboto',sans-serif">${SITE}</span>
-      <span style="color:rgba(255,255,255,.55);font-size:9px;font-family:'Roboto',sans-serif">© 2025 ${AUTHORS} · CC BY 4.0</span>
+      <span style="color:rgba(255,255,255,.55);font-size:9px;font-family:'Roboto',sans-serif">© ${new Date().getFullYear()} ${AUTHORS} · CC BY 4.0</span>
       <span style="color:rgba(255,255,255,.45);font-size:9px;font-family:'Roboto',sans-serif">Research prototype. Not for clinical use.</span>
     </div>
   </div>`;
@@ -642,17 +646,22 @@ async function _buildPDFBlob() {
   const pdf  = new jsPDF({ orientation: 'landscape', unit: 'px', format: [960, 540] });
   const slides = [slide1(), slide2(), slide3(), slide4()];
   const container = document.createElement('div');
-  container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;z-index:-1';
+  // overflow:hidden + clip prevents any slide content from contributing to page scroll height
+  container.style.cssText = 'position:fixed;top:0;left:0;width:960px;height:540px;overflow:hidden;opacity:0;pointer-events:none;z-index:-9999;transform:translateX(-9999px)';
   document.body.appendChild(container);
-  for (let i = 0; i < slides.length; i++) {
-    container.innerHTML = slides[i];
-    const canvas = await html2canvas(container.firstChild, {
-      scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
-    });
-    if (i > 0) pdf.addPage([960, 540], 'landscape');
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 960, 540);
+  try {
+    for (let i = 0; i < slides.length; i++) {
+      container.innerHTML = slides[i];
+      const canvas = await html2canvas(container.firstChild, {
+        scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
+      });
+      if (i > 0) pdf.addPage([960, 540], 'landscape');
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 960, 540);
+    }
+  } finally {
+    // Always remove — even if html2canvas throws — so no orphaned elements affect scroll height
+    if (container.parentNode) document.body.removeChild(container);
   }
-  document.body.removeChild(container);
   return new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' });
 }
 
