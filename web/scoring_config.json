@@ -1,0 +1,162 @@
+{
+  "generated_at": "2026-06-09T14:51:20.205402+00:00",
+  "levels": {
+    "CSC": {
+      "label": "Comprehensive Stroke Center",
+      "color": "#c0392b",
+      "scores": {
+        "15": 100,
+        "30": 85,
+        "45": 65,
+        "60": 50,
+        "9999": 25
+      }
+    },
+    "PSC": {
+      "label": "Primary Stroke Center",
+      "color": "#1d6fa4",
+      "scores": {
+        "15": 40,
+        "30": 32,
+        "45": 24,
+        "60": 16,
+        "9999": 8
+      }
+    },
+    "ASRH": {
+      "label": "Acute Stroke Ready Hospital",
+      "color": "#6b7280",
+      "scores": {
+        "15": 25,
+        "30": 20,
+        "45": 15,
+        "60": 10,
+        "9999": 5
+      }
+    }
+  },
+  "tiers": {
+    "high": {
+      "min": 70,
+      "label": "Strong Access",
+      "color": "#1a7837"
+    },
+    "medium": {
+      "min": 40,
+      "label": "Moderate Access",
+      "color": "#fec44f"
+    },
+    "low": {
+      "min": 0,
+      "label": "Limited Access",
+      "color": "#d7191c"
+    }
+  },
+  "color_scale": [
+    {
+      "min": 0,
+      "max": 25,
+      "color": "#d7191c",
+      "label": "Very Limited"
+    },
+    {
+      "min": 25,
+      "max": 41,
+      "color": "#f07b4f",
+      "label": "Limited"
+    },
+    {
+      "min": 41,
+      "max": 56,
+      "color": "#fec44f",
+      "label": "Moderate"
+    },
+    {
+      "min": 56,
+      "max": 71,
+      "color": "#a6d96a",
+      "label": "Good"
+    },
+    {
+      "min": 71,
+      "max": 86,
+      "color": "#4dac26",
+      "label": "Strong"
+    },
+    {
+      "min": 86,
+      "max": 101,
+      "color": "#1a7837",
+      "label": "Excellent"
+    }
+  ],
+  "flags": {
+    "socioeconomic_vulnerability": {
+      "score_threshold": 40,
+      "poverty_threshold": 20.0,
+      "uninsured_threshold": 15.0,
+      "requires_majority_minority": true
+    },
+    "clinical_risk": {
+      "score_threshold": 40,
+      "median_age_threshold": 40
+    }
+  },
+  "drive_time_labels": [
+    "0\u201315 min",
+    "15\u201330 min",
+    "30\u201345 min",
+    "45\u201360 min",
+    ">60 min"
+  ],
+  "penalty_table": [
+    {
+      "drive_time": "0\u201315 min",
+      "scores": {
+        "CSC": 100,
+        "PSC": 40,
+        "ASRH": 25
+      }
+    },
+    {
+      "drive_time": "15\u201330 min",
+      "scores": {
+        "CSC": 85,
+        "PSC": 32,
+        "ASRH": 20
+      }
+    },
+    {
+      "drive_time": "30\u201345 min",
+      "scores": {
+        "CSC": 65,
+        "PSC": 24,
+        "ASRH": 15
+      }
+    },
+    {
+      "drive_time": "45\u201360 min",
+      "scores": {
+        "CSC": 50,
+        "PSC": 16,
+        "ASRH": 10
+      }
+    },
+    {
+      "drive_time": ">60 min",
+      "scores": {
+        "CSC": 25,
+        "PSC": 8,
+        "ASRH": 5
+      }
+    },
+    {
+      "drive_time": "No certified facility",
+      "scores": {
+        "CSC": 0,
+        "PSC": 0,
+        "ASRH": 0
+      }
+    }
+  ]
+}
