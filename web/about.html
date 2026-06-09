@@ -206,6 +206,29 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   }
 }
 
+/* Coverage grid */
+.coverage-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--divider); margin-top: 20px;
+}
+.cov-item {
+  background: #fff; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.cov-num {
+  font-family: 'Roboto Slab', serif; font-size: 2rem;
+  color: var(--navy); line-height: 1;
+}
+.cov-label {
+  font-size: .8rem; color: #777; line-height: 1.4; font-weight: 500;
+}
+@media (max-width: 600px) {
+  .coverage-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 380px) {
+  .coverage-grid { grid-template-columns: 1fr; }
+}
+
 /* Download PDF button — white outline on the navy hero */
 .download-pdf-btn {
   display: inline-flex; align-items: center;
@@ -303,53 +326,29 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
   <!-- How the Score Works -->
   <div class="about-section">
     <h2>How the Score Works</h2>
-    <p>Each hospital is assigned a stroke-care tier based on its CMS overall quality rating (a proxy for certification, pending EMNet data). The four tiers follow the national stroke center hierarchy:</p>
+    <p>The SAS uses a CSC-weighted scoring model with 15-minute drive time increments. Comprehensive Stroke Centers are weighted heavily as the only facilities capable of mechanical thrombectomy. Primary Stroke Centers provide modest mitigation only. TSC has been removed — it was assigned by CMS proxy, not authoritative certification data. LA County EMS recognizes only CSC and PSC.</p>
 
     <div class="penalty-table-wrap">
     <table class="penalty-table">
       <thead>
         <tr>
-          <th>Level</th>
-          <th>Description</th>
-          <th>Base Score</th>
-          <th>Penalty &gt;30 min</th>
-          <th>Penalty &gt;60 min</th>
+          <th>Drive Time</th>
+          <th><span class="level-badge csc" style="font-size:.75rem">CSC</span> Score</th>
+          <th><span class="level-badge psc" style="font-size:.75rem">PSC</span> Score</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td><span class="level-badge csc">CSC</span></td>
-          <td>Comprehensive Stroke Center — full thrombectomy + complex care</td>
-          <td>100</td>
-          <td>−30</td>
-          <td>−15</td>
-        </tr>
-        <tr>
-          <td><span class="level-badge tsc">TSC</span></td>
-          <td>Thrombectomy-capable Stroke Center</td>
-          <td>75</td>
-          <td>−15</td>
-          <td>−15</td>
-        </tr>
-        <tr>
-          <td><span class="level-badge psc">PSC</span></td>
-          <td>Primary Stroke Center — IV tPA capable</td>
-          <td>50</td>
-          <td>−15</td>
-          <td>−15</td>
-        </tr>
-        <tr>
-          <td><span class="level-badge asrh">ASRH</span></td>
-          <td>Acute Stroke Ready Hospital — stabilization + transfer</td>
-          <td>25</td>
-          <td>−20</td>
-          <td>−15</td>
-        </tr>
+        <tr><td>0–15 min</td><td>100</td><td>40</td></tr>
+        <tr><td>15–30 min</td><td>85</td><td>32</td></tr>
+        <tr><td>30–45 min</td><td>65</td><td>24</td></tr>
+        <tr><td>45–60 min</td><td>50</td><td>16</td></tr>
+        <tr><td>&gt;60 min</td><td>25</td><td>8</td></tr>
+        <tr><td>No certified facility</td><td>0</td><td>0</td></tr>
       </tbody>
     </table>
     </div>
 
-    <p>For each ZIP code, the SAS score is the <strong>highest adjusted score</strong> across all hospitals in the drive-time cache — i.e., the score reflects the best facility realistically reachable from that ZIP. Penalties are cumulative: a ZIP that is 70 minutes from its nearest CSC receives a score of 100 − 30 − 15 = 55.</p>
+    <p>For each ZIP code, the SAS score is the <strong>highest score</strong> across all hospitals in the drive-time cache — reflecting the best certified facility realistically reachable. A ZIP with CSC access within 15 minutes scores 100; one with only a PSC more than 60 minutes away scores 8.</p>
 
     <div class="score-scale">
       <div class="scale-seg" style="background:#c0392b;flex:4">0–39<br><span style="font-size:.65rem">Low</span></div>
@@ -386,58 +385,94 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
       <li>
         <div class="source-dot"></div>
         <div>
-          <div class="source-name">CMS Hospital Compare</div>
-          <div class="source-desc">Hospital characteristics, overall quality ratings (1–5), and facility type for all 378 California hospitals. Used to infer stroke certification tier as a proxy (EMNet certification data pending).</div>
+          <div class="source-name">LA County EMS Approved Stroke Center Directory</div>
+          <div class="source-desc">Authoritative source for LA County hospital stroke certifications. July 28, 2025 edition. Used for all LA County CSC and PSC designations.</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">CMS Hospital Compare — Rest of California</div>
+          <div class="source-desc">Hospital characteristics and facility type for non-LA-County hospitals. TSC proxy removed — TSC was assigned by CMS rating, not authoritative certification data. EMNet national certification data pending for future versions.</div>
+        </div>
+      </li>
+      <li>
+        <div class="source-dot"></div>
+        <div>
+          <div class="source-name">Manual Hospital Additions</div>
+          <div class="source-desc">8 hospitals present in the LA County EMS directory were absent from the CMS dataset and added manually, including drive-time collection for each.</div>
         </div>
       </li>
       <li>
         <div class="source-dot"></div>
         <div>
           <div class="source-name">U.S. Census — ACS 5-Year Estimates, 2022</div>
-          <div class="source-desc">ZIP Code Tabulation Area (ZCTA) level demographics including total population, race/ethnicity breakdowns, median household income, poverty rate, health insurance coverage, and median age.</div>
+          <div class="source-desc">ZCTA-level demographics including total population, race/ethnicity, median household income, poverty rate, health insurance coverage, and median age.</div>
         </div>
       </li>
       <li>
         <div class="source-dot"></div>
         <div>
           <div class="source-name">Census TIGER/Line Shapefiles, 2022</div>
-          <div class="source-desc">ZCTA boundary geometries used for choropleth mapping and geographic area calculations. Geometries simplified to 0.005° tolerance for web performance.</div>
+          <div class="source-desc">ZCTA boundary geometries for choropleth mapping and area calculations. Simplified to 0.005° tolerance for web performance.</div>
         </div>
       </li>
       <li>
         <div class="source-dot"></div>
         <div>
           <div class="source-name">Census 2020 Decennial — Block-level Population</div>
-          <div class="source-desc">PL 94-171 redistricting data used to compute population-weighted centroids for each ZCTA, replacing geometric centroids for more accurate geographic representation of where people actually live.</div>
+          <div class="source-desc">PL 94-171 redistricting data used to compute population-weighted centroids for each ZCTA, replacing geometric centroids for more accurate geographic representation.</div>
         </div>
       </li>
       <li>
         <div class="source-dot"></div>
         <div>
           <div class="source-name">Drive-Time Cache</div>
-          <div class="source-desc">8,986 precomputed origin-destination drive times between California ZCTAs and the 338 geocoded hospitals. Distances computed via point-to-point routing. Collection methodology pending documentation.</div>
-        </div>
-      </li>
-      <li>
-        <div class="source-dot"></div>
-        <div>
-          <div class="source-name">Census Geocoder API</div>
-          <div class="source-desc">Free batch geocoding used to assign latitude/longitude to the 378 hospital addresses. 338 of 378 (89.4%) were successfully geocoded.</div>
+          <div class="source-desc">13,511 precomputed origin-destination drive times between California ZCTAs and geocoded hospitals. Captures up to 5 nearest hospitals per ZIP by straight-line distance. Single 8am weekday departure.</div>
         </div>
       </li>
     </ul>
+  </div>
+
+  <!-- Coverage -->
+  <div class="about-section">
+    <h2>Coverage</h2>
+    <p>Statistics computed live from the scoring dataset.</p>
+    <div class="coverage-grid">
+      <div class="cov-item">
+        <span class="cov-num" id="stat-ca-zips">—</span>
+        <span class="cov-label">California ZIP codes scored statewide</span>
+      </div>
+      <div class="cov-item">
+        <span class="cov-num" id="stat-la-zips">—</span>
+        <span class="cov-label">of 312 LA County ZIP codes scored<br><span style="font-size:.78rem;color:#aaa;font-weight:400">(9 excluded — non-residential)</span></span>
+      </div>
+      <div class="cov-item">
+        <span class="cov-num" id="stat-la-hospitals">341</span>
+        <span class="cov-label">LA County hospitals in dataset</span>
+      </div>
+      <div class="cov-item">
+        <span class="cov-num" id="stat-la-limited" style="color:#c0392b">—</span>
+        <span class="cov-label">LA County — limited access (0–39)</span>
+      </div>
+      <div class="cov-item">
+        <span class="cov-num" id="stat-la-moderate" style="color:#e67e22">—</span>
+        <span class="cov-label">LA County — moderate access (40–69)</span>
+      </div>
+      <div class="cov-item">
+        <span class="cov-num" id="stat-la-strong" style="color:#27ae60">—</span>
+        <span class="cov-label">LA County — strong access (70–100)</span>
+      </div>
+    </div>
   </div>
 
   <!-- Limitations -->
   <div class="about-section">
     <h2>Limitations &amp; Caveats</h2>
     <ul class="limitations-list">
-      <li><strong>CMS ratings as proxy:</strong> Hospital overall ratings are used as a substitute for formal stroke center certification (CSC/TSC/PSC/ASRH from The Joint Commission or DNV). These are correlated but not identical. Actual certification data from EMNet will improve accuracy in future versions.</li>
-      <li><strong>Drive-time estimates:</strong> Times are point-to-centroid estimates under typical traffic conditions — not EMS routing times, which vary by dispatch location, traffic, and availability. Actual ambulance travel times will differ.</li>
-      <li><strong>ZCTA-level resolution:</strong> ZIP Code Tabulation Areas are administrative units averaging several square miles. Within a single ZCTA, access can vary substantially. The score represents an average condition, not any individual's experience.</li>
-      <li><strong>Static snapshot:</strong> Scores are based on 2022 ACS data and a single drive-time collection. Hospital closures, new certifications, or demographic shifts are not reflected.</li>
-      <li><strong>No weighting for hospital capacity:</strong> A ZIP 10 minutes from a CSC with 4 stroke beds is scored the same as one 10 minutes from a CSC with 40 beds. Capacity constraints are not modeled.</li>
-      <li><strong>Not for clinical or emergency use:</strong> This tool is for research and policy analysis only. It should not be used to guide individual patient routing or emergency medical decisions.</li>
+      <li><strong>Certification data outside LA County:</strong> Hospital certification outside LA County uses CMS proxy data. TSC has been removed as it was a CMS proxy artifact, not a recognized EMS certification tier in California. EMNet national certification data is pending for future versions.</li>
+      <li><strong>Drive time methodology:</strong> Drive times are based on a single 8am weekday departure point. A multi-time-point methodology capturing morning, midday, and evening departures (0800 / 1200 / 1700) is planned for future versions.</li>
+      <li><strong>Drive time cache coverage:</strong> The drive time cache captures the 5 nearest hospitals per ZIP code by straight-line distance. Some nearby certified facilities may be absent from a given ZIP's cache if a closer uncertified hospital displaced them in the pre-selection step.</li>
     </ul>
   </div>
 
@@ -498,6 +533,82 @@ document.addEventListener('click',e=>{
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('cy');
   if (el) el.textContent = new Date().getFullYear();
+});
+
+// ── Coverage stats — live from CSV ───────────────────────────────────────────
+const LA_COUNTY_ZIPS = new Set([
+  '90001','90002','90003','90004','90005','90006','90007','90008','90010','90011',
+  '90012','90013','90014','90015','90016','90017','90018','90019','90020','90021',
+  '90022','90023','90024','90025','90026','90027','90028','90029','90031','90032',
+  '90033','90034','90035','90036','90037','90038','90039','90040','90041','90042',
+  '90043','90044','90045','90046','90047','90048','90049','90056','90057','90058',
+  '90059','90061','90062','90063','90064','90065','90066','90067','90068','90069',
+  '90071','90073','90077','90089','90090','90094','90095','90201','90210','90211',
+  '90212','90220','90221','90222','90230','90232','90240','90241','90242','90245',
+  '90247','90248','90249','90250','90254','90255','90260','90261','90262','90263',
+  '90265','90266','90270','90272','90274','90275','90277','90278','90280','90290',
+  '90291','90292','90293','90301','90302','90303','90304','90305','90401','90402',
+  '90403','90404','90405','90501','90502','90503','90504','90505','90506','90601',
+  '90602','90603','90604','90605','90606','90623','90630','90631','90638','90639',
+  '90640','90650','90660','90670','90701','90703','90704','90706','90710','90712',
+  '90713','90715','90716','90717','90723','90731','90732','90744','90745','90746',
+  '90747','90755','90802','90803','90804','90805','90806','90807','90808','90810',
+  '90813','90814','90815','90822','90831','90840','90846','91001','91006','91007',
+  '91008','91010','91011','91016','91020','91023','91024','91030','91040','91042',
+  '91046','91101','91103','91104','91105','91106','91107','91108','91125','91126',
+  '91201','91202','91203','91204','91205','91206','91207','91208','91210','91214',
+  '91301','91302','91303','91304','91306','91307','91311','91316','91321','91324',
+  '91325','91326','91330','91331','91335','91340','91342','91343','91344','91345',
+  '91350','91351','91352','91354','91355','91356','91361','91362','91364','91367',
+  '91381','91382','91384','91387','91390','91401','91402','91403','91405','91406',
+  '91411','91423','91436','91501','91502','91504','91505','91506','91521','91522',
+  '91523','91601','91602','91604','91605','91606','91607','91608','91702','91706',
+  '91709','91710','91711','91722','91723','91724','91731','91732','91733','91740',
+  '91741','91744','91745','91746','91748','91750','91754','91755','91759','91765',
+  '91766','91767','91768','91770','91773','91775','91776','91780','91789','91790',
+  '91791','91792','91801','91803','92397','92821','92823','93243','93510','93523',
+  '93532','93534','93535','93536','93543','93544','93550','93551','93552','93553',
+  '93563','93591'
+]);
+
+function _parseLine(raw) {
+  const out=[]; let cur='',q=false;
+  for(let i=0;i<raw.length;i++){
+    const c=raw[i];
+    if(c==='"'){q=!q;continue;}
+    if(c===','&&!q){out.push(cur);cur='';continue;}
+    cur+=c;
+  }
+  out.push(cur); return out;
+}
+function _parseCSV(text) {
+  const lines=text.trim().split('\n');
+  const hdrs=_parseLine(lines[0]).map(h=>h.trim());
+  return lines.slice(1).filter(Boolean).map(l=>{
+    const vals=_parseLine(l),obj={};
+    hdrs.forEach((h,i)=>{obj[h]=(vals[i]??'').trim();});
+    return obj;
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('./ca_zip_scores.csv')
+    .then(r => r.text())
+    .then(text => {
+      const rows    = _parseCSV(text);
+      const caRows  = rows.filter(r => r.sas_score !== '');
+      const laRows  = rows.filter(r => LA_COUNTY_ZIPS.has(r.zcta) && r.sas_score !== '');
+      const limited  = laRows.filter(r => parseFloat(r.sas_score) <= 39).length;
+      const moderate = laRows.filter(r => parseFloat(r.sas_score) >= 40 && parseFloat(r.sas_score) <= 69).length;
+      const strong   = laRows.filter(r => parseFloat(r.sas_score) >= 70).length;
+      document.getElementById('stat-ca-zips').textContent    = caRows.length.toLocaleString();
+      document.getElementById('stat-la-zips').textContent    = laRows.length.toLocaleString();
+      document.getElementById('stat-la-hospitals').textContent = '341';
+      document.getElementById('stat-la-limited').textContent  = limited.toLocaleString();
+      document.getElementById('stat-la-moderate').textContent = moderate.toLocaleString();
+      document.getElementById('stat-la-strong').textContent   = strong.toLocaleString();
+    })
+    .catch(() => {}); // silently fail — stats just stay as "—"
 });
 
 // ── Methodology PDF — same 960×540 slide format as map PNG export ──────────────
