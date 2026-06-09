@@ -329,7 +329,7 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
     <p>The SAS uses a CSC-weighted scoring model with 15-minute drive time increments. Comprehensive Stroke Centers are weighted heavily as the only facilities capable of mechanical thrombectomy. Primary Stroke Centers provide modest mitigation only. TSC has been removed — it was assigned by CMS proxy, not authoritative certification data. LA County EMS recognizes only CSC and PSC.</p>
 
     <div class="penalty-table-wrap">
-    <table class="penalty-table">
+    <table class="penalty-table" id="penalty-table">
       <thead>
         <tr>
           <th>Drive Time</th>
@@ -337,7 +337,8 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
           <th><span class="level-badge psc" style="font-size:.75rem">PSC</span> Score</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="penalty-table-body">
+        <!-- Populated from scoring_config.json -->
         <tr><td>0–15 min</td><td>100</td><td>40</td></tr>
         <tr><td>15–30 min</td><td>85</td><td>32</td></tr>
         <tr><td>30–45 min</td><td>65</td><td>24</td></tr>
@@ -350,7 +351,8 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
 
     <p>For each ZIP code, the SAS score is the <strong>highest score</strong> across all hospitals in the drive-time cache — reflecting the best certified facility realistically reachable. A ZIP with CSC access within 15 minutes scores 100; one with only a PSC more than 60 minutes away scores 8.</p>
 
-    <div class="score-scale">
+    <div class="score-scale" id="score-scale">
+      <!-- Populated from scoring_config.json; fallback below -->
       <div class="scale-seg" style="background:#c0392b;flex:4">0–39<br><span style="font-size:.65rem">Low</span></div>
       <div class="scale-seg" style="background:#e67e22;flex:2">40–59<br><span style="font-size:.65rem">Med-low</span></div>
       <div class="scale-seg" style="background:#f1c40f;color:#333;flex:1">60–69</div>
@@ -591,6 +593,48 @@ function _parseCSV(text) {
   });
 }
 
+// ── Populate penalty table and score scale from scoring_config.json ──────────
+fetch('./scoring_config.json')
+  .then(r => r.json())
+  .then(cfg => {
+    window.SASConfig = cfg;
+    // Penalty table — show CSC and PSC columns only
+    const tbody = document.getElementById('penalty-table-body');
+    if (tbody && cfg.penalty_table) {
+      const thead = document.querySelector('#penalty-table thead tr');
+      // Rebuild header from config levels (skip ASRH in display for brevity)
+      const displayLevels = Object.keys(cfg.levels).filter(l => l !== 'ASRH');
+      if (thead) {
+        thead.innerHTML = '<th>Drive Time</th>' +
+          displayLevels.map(l =>
+            `<th><span class="level-badge ${l.toLowerCase()}" style="font-size:.75rem">${l}</span> Score</th>`
+          ).join('');
+      }
+      tbody.innerHTML = cfg.penalty_table.map(row =>
+        `<tr><td>${row.drive_time}</td>${displayLevels.map(l =>
+          `<td>${row.scores[l] !== undefined ? row.scores[l] : '—'}</td>`
+        ).join('')}</tr>`
+      ).join('');
+    }
+
+    // Score scale bar
+    const scale = document.getElementById('score-scale');
+    if (scale && cfg.color_scale) {
+      const tiers   = cfg.tiers;
+      const highMin = tiers ? tiers.high.min   : 70;
+      const medMin  = tiers ? tiers.medium.min : 40;
+      scale.innerHTML = [
+        { label: `0–${medMin - 1}`,       sub: 'Low',      color: '#c0392b', flex: medMin },
+        { label: `${medMin}–${highMin - 1}`, sub: 'Moderate', color: '#e67e22', flex: highMin - medMin },
+        { label: `${highMin}–100`,         sub: 'High',     color: '#27ae60', flex: 100 - highMin + 1 },
+      ].map(s =>
+        `<div class="scale-seg" style="background:${s.color};flex:${s.flex}">` +
+        `${s.label}<br><span style="font-size:.65rem">${s.sub}</span></div>`
+      ).join('');
+    }
+  })
+  .catch(() => {}); // silently keep static fallback if config missing
+
 document.addEventListener('DOMContentLoaded', () => {
   fetch('./ca_zip_scores.csv')
     .then(r => r.text())
@@ -598,9 +642,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const rows    = _parseCSV(text);
       const caRows  = rows.filter(r => r.sas_score !== '');
       const laRows  = rows.filter(r => LA_COUNTY_ZIPS.has(r.zcta) && r.sas_score !== '');
-      const limited  = laRows.filter(r => parseFloat(r.sas_score) <= 39).length;
-      const moderate = laRows.filter(r => parseFloat(r.sas_score) >= 40 && parseFloat(r.sas_score) <= 69).length;
-      const strong   = laRows.filter(r => parseFloat(r.sas_score) >= 70).length;
+      // Use config thresholds if loaded, otherwise fall back to defaults
+      const _cfg    = window.SASConfig && window.SASConfig.tiers;
+      const medMin  = _cfg ? _cfg.medium.min : 40;
+      const highMin = _cfg ? _cfg.high.min   : 70;
+      const limited  = laRows.filter(r => parseFloat(r.sas_score) < medMin).length;
+      const moderate = laRows.filter(r => { const s = parseFloat(r.sas_score); return s >= medMin && s < highMin; }).length;
+      const strong   = laRows.filter(r => parseFloat(r.sas_score) >= highMin).length;
       document.getElementById('stat-ca-zips').textContent    = caRows.length.toLocaleString();
       document.getElementById('stat-la-zips').textContent    = laRows.length.toLocaleString();
       document.getElementById('stat-la-hospitals').textContent = '341';

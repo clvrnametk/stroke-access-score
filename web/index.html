@@ -503,7 +503,9 @@ function setRegion(region) {
 function populateStats(data, q1, q3, region) {
   const all    = [...data.values()];
   const scored = all.filter(d => d.sas_score !== null);
-  const low    = scored.filter(d => d.sas_score < 40);
+  const _cfg   = window.SASConfig && window.SASConfig.tiers;
+  const medMin = _cfg ? _cfg.medium.min : 40;
+  const low    = scored.filter(d => d.sas_score < medMin);
   const djf    = all.filter(d => d.double_jeopardy_flag === 1);
   const mm     = scored.filter(d => d.is_majority_minority === 1);
   const nonMM  = scored.filter(d => d.is_majority_minority === 0);
@@ -570,6 +572,9 @@ function populateStats(data, q1, q3, region) {
 /* ── Init ── */
 async function init() {
   try {
+    // Load config first so thresholds are available for stats
+    fetch('./scoring_config.json').then(r => r.ok ? r.json() : null).then(cfg => { if (cfg) window.SASConfig = cfg; }).catch(() => {});
+
     const res = await fetch('./ca_zip_scores.csv');
     if (!res.ok) throw new Error(`CSV fetch failed (HTTP ${res.status})`);
     const rows = parseCSV(await res.text());

@@ -1167,16 +1167,18 @@
 
     // ─ Data loading ─
     async function loadData() {
-      const [gr, cr, hr, dr] = await Promise.all([
+      const [gr, cr, hr, dr, scr] = await Promise.all([
         fetch('./ca_zip_simplified.geojson'),
         fetch('./ca_zip_scores.csv'),
         fetch('./ca_hospitals.json'),
         fetch('./drive_time_cache.json'),
+        fetch('./scoring_config.json'),
       ]);
       if (!gr.ok) throw new Error('GeoJSON ' + gr.status);
       if (!cr.ok) throw new Error('CSV ' + cr.status);
       if (!hr.ok) throw new Error('Hospitals ' + hr.status);
       if (!dr.ok) throw new Error('Drive cache ' + dr.status);
+      if (scr.ok) window.SASConfig = await scr.json();
       return Promise.all([gr.json(), cr.text(), hr.json(), dr.json()]);
     }
 
@@ -1263,13 +1265,20 @@
 
     // ─ Colors ─
     function sasColor(s) {
-      if (s === null || s === undefined || s === 0) return '#d7191c';
-      if (s <= 24) return '#d7191c';   // very limited — deep red
-      if (s <= 40) return '#f07b4f';   // limited — coral/orange
-      if (s <= 55) return '#fec44f';   // moderate-low — amber
-      if (s <= 70) return '#a6d96a';   // moderate — yellow-green
-      if (s <= 85) return '#4dac26';   // good — green
-      return '#1a7837';                // strong — dark green
+      if (s === null || s === undefined) return '#d7191c';
+      // Config-driven: reads from scoring_config.json loaded at startup
+      const scale = window.SASConfig && window.SASConfig.color_scale;
+      if (scale) {
+        for (const band of scale) { if (s < band.max) return band.color; }
+        return scale[scale.length - 1].color;
+      }
+      // Fallback (matches scoring_config.py defaults)
+      if (s <= 24) return '#d7191c';
+      if (s <= 40) return '#f07b4f';
+      if (s <= 55) return '#fec44f';
+      if (s <= 70) return '#a6d96a';
+      if (s <= 85) return '#4dac26';
+      return '#1a7837';
     }
 
     function incomeColor(v) {
@@ -1318,10 +1327,13 @@
 
     function isVisible(d) {
       if (!d) return S.filter === 'all';
+      const tiers   = window.SASConfig && window.SASConfig.tiers;
+      const lowMax  = tiers ? tiers.medium.min : 40;
+      const highMin = tiers ? tiers.high.min   : 70;
       switch (S.filter) {
-        case 'all': return true;
-        case 'low': return d.sas_score !== null && d.sas_score < 40;
-        case 'high': return d.sas_score !== null && d.sas_score >= 70;
+        case 'all':     return true;
+        case 'low':     return d.sas_score !== null && d.sas_score < lowMax;
+        case 'high':    return d.sas_score !== null && d.sas_score >= highMin;
         case 'flagged': return d.socioeconomic_vulnerability_flag === 1 || d.clinical_risk_flag === 1 || d.double_jeopardy_flag === 1;
       }
       return true;
@@ -1329,9 +1341,11 @@
 
     function scoreTier(s) {
       if (s === null) return 'Unscored';
-      if (s < 40) return 'Low access';
-      if (s < 60) return 'Medium-low';
-      if (s < 70) return 'Medium-high';
+      const tiers   = window.SASConfig && window.SASConfig.tiers;
+      const medMin  = tiers ? tiers.medium.min : 40;
+      const highMin = tiers ? tiers.high.min   : 70;
+      if (s < medMin)  return 'Low access';
+      if (s < highMin) return 'Moderate access';
       return 'High access';
     }
 
