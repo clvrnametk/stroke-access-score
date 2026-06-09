@@ -69,9 +69,27 @@ nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 5
 .dl-btn.primary:hover { background: #1e2a5e; }
 
 /* Table wrapper */
-.table-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Table lives in a fixed-height scroll container so the sticky header
+   is relative to the container (top:0), not the viewport (top:56px).
+   This prevents the header from overlapping the controls bar. */
+.table-outer { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
+.table-wrap {
+  max-height: calc(100vh - 280px); /* viewport minus nav + stats + controls */
+  min-height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--divider);
+}
 table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 900px; }
-thead th { position: sticky; top: 56px; background: var(--navy); color: #fff; padding: 10px 12px; text-align: left; font-weight: 500; font-family: 'Roboto', sans-serif; cursor: pointer; white-space: nowrap; user-select: none; }
+thead th {
+  position: sticky;
+  top: 0;            /* relative to scroll container, not viewport */
+  z-index: 2;
+  background: var(--navy); color: #fff; padding: 10px 12px;
+  text-align: left; font-weight: 500; font-family: 'Roboto', sans-serif;
+  cursor: pointer; white-space: nowrap; user-select: none;
+}
 thead th:hover { background: #1a1a5c; }
 thead th.sorted-asc::after  { content: ' ↑'; color: var(--pink); }
 thead th.sorted-desc::after { content: ' ↓'; color: var(--pink); }
@@ -122,6 +140,8 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
   .nav-links { display: none; } .hamburger { display: flex; }
   .stats-inner { grid-template-columns: repeat(2,1fr); }
   footer { flex-direction: column; }
+  .table-outer { padding: 0 12px 32px; }
+  .table-wrap { max-height: 60vh; }
 }
 @media (max-width: 480px) {
   .stats-inner { grid-template-columns: repeat(2,1fr); }
@@ -195,6 +215,7 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
 </div>
 
 <!-- Table -->
+<div class="table-outer">
 <div class="table-wrap">
   <div id="loading-msg">Loading data…</div>
   <table id="data-table" style="display:none">
@@ -215,7 +236,8 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
     </thead>
     <tbody id="table-body"></tbody>
   </table>
-</div>
+</div><!-- /table-wrap -->
+</div><!-- /table-outer -->
 
 <p class="data-note">Scores are based on LA County EMS certified stroke center data and CMS hospital data. EMNet national certification data pending. Not for clinical use.</p>
 
