@@ -165,6 +165,53 @@ nav {
 }
 .unmatched-note strong { color: #4a3800; }
 
+/* ── Update separator ── */
+.update-divider {
+  border: none; border-top: 2px solid var(--divider);
+  margin: 56px 0;
+}
+
+/* ── Amber warning callout ── */
+.warning-note {
+  margin-top: 20px; padding: 16px 20px;
+  background: #fffbeb; border-left: 4px solid #d97706;
+  font-size: .92rem; color: #78350f; line-height: 1.65;
+}
+.warning-note strong { color: #451a03; }
+
+/* ── Hospital removal list ── */
+.removed-list { list-style: none; margin-top: 10px; }
+.removed-list li {
+  padding: 7px 0 7px 16px; border-bottom: 1px solid var(--divider);
+  font-size: .9rem; position: relative; color: var(--text);
+}
+.removed-list li::before {
+  content: ''; position: absolute; left: 0; top: 15px;
+  width: 5px; height: 5px; background: var(--down);
+}
+.removed-list li:last-child { border-bottom: none; }
+
+/* ── Correction subheading ── */
+.correction-h3 {
+  font-size: 1rem; color: var(--navy); margin: 24px 0 6px;
+  padding-left: 12px; border-left: 3px solid var(--divider);
+}
+
+/* ── Status table ── */
+.status-section {
+  background: #0a0a2e; padding: 36px 24px;
+}
+.status-section .inner { max-width: 820px; margin: 0 auto; }
+.status-section h2 { font-size: clamp(1.1rem,2.5vw,1.4rem); color: #fff; margin-bottom: 16px; }
+.status-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.status-table th { background: rgba(255,255,255,.08); color: rgba(255,255,255,.6); padding: 8px 14px; text-align: left; font-weight: 500; font-family: 'Roboto', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; }
+.status-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.08); color: rgba(255,255,255,.8); font-family: 'Roboto', sans-serif; }
+.status-table tr:last-child td { border-bottom: none; }
+.status-pill { display: inline-block; padding: 2px 8px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.s-current { background: #1a7340; color: #fff; }
+.s-pending { background: #d97706; color: #fff; }
+.s-future  { background: #555;    color: #fff; }
+
 /* ── What's next ── */
 .whats-next {
   background: var(--navy); color: #fff;
@@ -432,19 +479,134 @@ footer {
     </div>
   </div>
 
+  <hr class="update-divider">
+
+  <!-- ── Data Update #2 ── -->
+
+  <!-- Hero strip for Update #2 -->
+  <div style="background:var(--navy);color:#fff;padding:28px 0 24px;margin:0 -24px;padding-left:24px;padding-right:24px">
+    <span class="section-label">Data Update #2</span>
+    <h2 style="font-size:clamp(1.4rem,3vw,2rem);line-height:1.15;margin-bottom:8px">Hospital Dataset Cleanup</h2>
+    <div style="font-size:.88rem;color:rgba(255,255,255,.55);margin-bottom:14px">
+      <strong style="color:rgba(255,255,255,.8)">Published:</strong> June 8, 2026
+    </div>
+    <p style="font-size:.97rem;color:rgba(255,255,255,.72);max-width:680px;line-height:1.6">
+      Two additional corrections were made to the LA County hospital dataset following clinical review.
+      The TSC certification tier was removed statewide as a proxy artifact, and non-certified hospitals
+      in LA County were removed from the dataset entirely. These corrections make the data more accurate
+      but result in lower scores for some ZIP codes — reflecting true access, not degraded care.
+    </p>
+  </div>
+
+  <!-- Stats for Update #2 -->
+  <div style="background:#0a0a2e;border-top:1px solid rgba(255,255,255,.1);padding:20px 0;margin:0 -24px;padding-left:24px;padding-right:24px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div class="stat-box"><span class="num">63</span><span class="lbl">Hospitals de-certified</span></div>
+      <div class="stat-box"><span class="num">635</span><span class="lbl">ZIP codes re-scored</span></div>
+      <div class="stat-box"><span class="num" style="color:#fb923c">5</span><span class="lbl">Hospitals removed from LA County</span></div>
+      <div class="stat-box"><span class="num" style="color:rgba(255,255,255,.3)">0</span><span class="lbl">Scores increased</span></div>
+    </div>
+  </div>
+
+  <!-- Update #2 body sections -->
+  <div class="cl-section" style="margin-top:40px">
+    <h2>Correction 1 — TSC category removed statewide</h2>
+    <p>
+      The Thrombectomy-Capable Stroke Center (TSC) tier was assigned entirely by the CMS hospital
+      quality rating proxy — not by any authoritative stroke certification source. LA County EMS and
+      standard California EMS practice recognize only two tiers: <strong>CSC and PSC</strong>. TSC does
+      not exist as a recognized EMS destination category in California.
+    </p>
+    <h3 class="correction-h3">Result</h3>
+    <p>
+      63 hospitals had their certification nulled statewide. 635 ZIP codes were re-scored.
+      All score changes were flat or negative — no ZIP scored higher from this correction.
+      6 ZIP codes in rural Northern California were zeroed out, meaning their nearest
+      previously-labeled facility was TSC only and no certified stroke center is within the
+      cached drive-time radius.
+    </p>
+  </div>
+
+  <div class="cl-section">
+    <h2>Correction 2 — Non-certified LA County hospitals removed</h2>
+    <p>
+      Any hospital in LA County not appearing on the LA County EMS Approved Stroke Center Directory
+      (July 28, 2025) was removed from the dataset entirely. A hospital not on the EMS directory is
+      not a recognized stroke destination — it should not appear in routing or scoring.
+    </p>
+    <h3 class="correction-h3">5 hospitals removed</h3>
+    <ul class="removed-list">
+      <li>Alhambra Hospital Medical Center</li>
+      <li>Glendale Memorial Hospital &amp; Health Center</li>
+      <li>Martin Luther King Jr. Community Hospital</li>
+      <li>San Gabriel Valley Medical Center</li>
+      <li>VA Long Beach Healthcare System</li>
+    </ul>
+  </div>
+
+  <div class="cl-section">
+    <h2>What changed and why</h2>
+    <p>
+      The original pipeline used CMS hospital data as the source of truth for which hospitals existed
+      and what level of care they provided. CMS data is comprehensive for billing purposes but does not
+      reflect EMS stroke certification. This update replaces LA County hospital data with the
+      authoritative LA County EMS directory. For the rest of California, CMS data with the TSC proxy
+      removed remains in use pending EMNet national certification data.
+    </p>
+    <div class="warning-note">
+      <strong>Score decreases in this update reflect more accurate data, not worse care.</strong>
+      A ZIP code that previously showed a score of 75 because a TSC-labeled hospital was nearby may now
+      show a lower score because that hospital was not actually a certified stroke destination.
+      The lower score is correct.
+    </div>
+  </div>
+
 </div><!-- /cl-body -->
 
 <!-- What's next -->
 <div class="whats-next">
   <div class="inner">
     <span class="section-label" style="color:rgba(225,0,135,.8)">Coming Next</span>
-    <h2>Update #2 — EMNet National Certification Data</h2>
+    <h2>Update #3 — EMNet National Certification Data</h2>
     <p>
-      Update #2 will integrate <strong>EMNet national stroke certification data statewide</strong>,
-      replacing all remaining CMS proxy ratings for hospitals outside LA County. This will complete
-      the transition from a quality-rating proxy to a fully certification-based scoring model across
-      all 1,802 California ZIP codes.
+      Update #3 will integrate <strong>EMNet national stroke certification data statewide</strong>,
+      replacing all remaining CMS proxy ratings for hospitals outside LA County. This will be the
+      most significant data update and will trigger a full re-score of all 1,802 California ZIP codes.
     </p>
+  </div>
+</div>
+
+<!-- Dataset status table -->
+<div class="status-section">
+  <div class="inner">
+    <span class="section-label" style="color:rgba(225,0,135,.8)">Current Data Status</span>
+    <h2>Dataset Coverage</h2>
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th>Region</th>
+          <th>Certification Source</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:#fff">LA County</strong></td>
+          <td>LA County EMS Directory (July 2025)</td>
+          <td><span class="status-pill s-current">Current</span></td>
+        </tr>
+        <tr>
+          <td><strong style="color:#fff">Rest of California</strong></td>
+          <td>CMS hospital data (proxy, TSC removed)</td>
+          <td><span class="status-pill s-pending">Pending EMNet</span></td>
+        </tr>
+        <tr>
+          <td><strong style="color:#fff">National</strong></td>
+          <td>Not yet scored</td>
+          <td><span class="status-pill s-future">Paper 2</span></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 

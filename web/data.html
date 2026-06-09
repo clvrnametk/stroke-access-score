@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L8BH5KFWLY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-L8BH5KFWLY');
+</script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/_mm_icon.png">
+<link rel="apple-touch-icon" href="/_mm_icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LA County Data — Stroke Access Score</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --navy: #0f0f3c; --pink: #e10087; --bg: #f5f4f8;
+  --text: #3c3c5a; --divider: #e0e0ec;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+html { overflow-x: hidden; background: #0f0f3c; }
+body { font-family: 'Roboto', sans-serif; color: var(--text); background: var(--bg); font-size: 15px; overflow-x: hidden; }
+h1,h2,h3 { font-family: 'Roboto Slab', serif; font-weight: 700; }
+a { text-decoration: none; }
+
+/* Nav */
+nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+.nav-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1.05rem; white-space: nowrap; }
+.nav-links { display: flex; gap: 4px; }
+.nav-link { color: rgba(255,255,255,.75); padding: 6px 10px; font-size: .9rem; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; text-decoration: none; }
+.nav-link:hover, .nav-link.active { color: #fff; border-bottom-color: var(--pink); text-decoration: none; }
+.hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; min-height: 44px; min-width: 44px; align-items: center; justify-content: center; }
+.hamburger span { display: block; width: 22px; height: 2px; background: #fff; }
+#nav-drawer { display: none; position: fixed; top: 56px; left: 0; right: 0; background: var(--navy); z-index: 499; padding: 8px 0 16px; border-top: 1px solid rgba(255,255,255,.1); }
+#nav-drawer.open { display: block; }
+#nav-drawer a { display: block; color: rgba(255,255,255,.85); text-decoration: none; padding: 12px 20px; font-size: .9rem; font-weight: 500; }
+#nav-drawer a:hover, #nav-drawer a.active { color: #fff; background: rgba(255,255,255,.07); }
+
+/* Hero */
+.hero { background: var(--navy); color: #fff; padding: clamp(40px,6vw,72px) 24px clamp(32px,4vw,56px); }
+.hero-inner { max-width: 1200px; margin: 0 auto; }
+.section-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--pink); margin-bottom: 10px; }
+.hero h1 { font-size: clamp(1.6rem,3vw,2.4rem); line-height: 1.15; margin-bottom: 8px; }
+.hero p { font-size: .95rem; color: rgba(255,255,255,.65); max-width: 640px; }
+
+/* Stats row */
+.stats-strip { background: #0a0a2e; border-top: 1px solid rgba(255,255,255,.1); padding: 20px 24px; }
+.stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.sbox { text-align: center; padding: 14px 8px; border: 1px solid rgba(255,255,255,.12); }
+.sbox .n { font-family: 'Roboto Slab', serif; font-size: clamp(1.4rem,2.5vw,2rem); color: var(--pink); line-height: 1; display: block; margin-bottom: 5px; }
+.sbox .l { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.45); line-height: 1.4; }
+
+/* Controls */
+.controls { max-width: 1200px; margin: 0 auto; padding: 20px 24px 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.search-box { flex: 1; min-width: 200px; position: relative; }
+.search-box input { width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1.5px solid var(--divider); background: #fff; font-family: 'Roboto', sans-serif; font-size: .88rem; color: var(--text); outline: none; }
+.search-box input:focus { border-color: var(--navy); }
+.search-box svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #aaa; }
+.row-count { font-size: .82rem; color: #888; white-space: nowrap; flex-shrink: 0; }
+.dl-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.dl-btn { height: 36px; padding: 0 16px; border: 1.5px solid var(--navy); background: #fff; color: var(--navy); font-family: 'Roboto', sans-serif; font-size: .82rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.dl-btn:hover { background: var(--navy); color: #fff; }
+.dl-btn.primary { background: var(--navy); color: #fff; }
+.dl-btn.primary:hover { background: #1e2a5e; }
+
+/* Table wrapper */
+.table-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: .83rem; min-width: 900px; }
+thead th { position: sticky; top: 56px; background: var(--navy); color: #fff; padding: 10px 12px; text-align: left; font-weight: 500; font-family: 'Roboto', sans-serif; cursor: pointer; white-space: nowrap; user-select: none; }
+thead th:hover { background: #1a1a5c; }
+thead th.sorted-asc::after  { content: ' ↑'; color: var(--pink); }
+thead th.sorted-desc::after { content: ' ↓'; color: var(--pink); }
+tbody tr:nth-child(even) td { background: #f9f9fb; }
+tbody tr:hover td { background: #f0f0f8; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
+td.zip { font-family: 'Roboto Slab', serif; font-weight: 700; font-size: .9rem; color: var(--navy); }
+
+/* Score badge */
+.score-badge { display: inline-block; padding: 2px 8px; font-family: 'Roboto Slab', serif; font-weight: 700; font-size: .88rem; min-width: 36px; text-align: center; }
+.score-limited  { background: #fdecea; color: #c0392b; }
+.score-moderate { background: #fef3e2; color: #d97706; }
+.score-strong   { background: #edf7ee; color: #1a7340; }
+
+/* Access pill */
+.access-pill { display: inline-block; padding: 2px 9px; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.access-limited  { background: #c0392b; color: #fff; }
+.access-moderate { background: #e67e22; color: #fff; }
+.access-strong   { background: #1a7340; color: #fff; }
+
+/* Cert badge */
+.cert { display: inline-block; padding: 2px 7px; font-size: .68rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #fff; }
+.cert-CSC  { background: #c0392b; }
+.cert-TSC  { background: #7c3aed; }
+.cert-PSC  { background: #1d6fa4; }
+.cert-ASRH { background: #6b7280; }
+
+/* Flag pills */
+.flag-wrap { display: flex; gap: 4px; flex-wrap: nowrap; }
+.flag { display: inline-block; padding: 1px 6px; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #fff; white-space: nowrap; }
+.flag-sev { background: var(--pink); }
+.flag-crf { background: #e67e22; }
+.flag-dj  { background: #8b0000; }
+
+/* Loading */
+#loading-msg { text-align: center; padding: 48px 24px; color: #888; font-size: .95rem; }
+
+/* Footer note */
+.data-note { max-width: 1200px; margin: 0 auto; padding: 0 24px 32px; font-size: .82rem; color: #888; }
+
+/* Footer */
+footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.footer-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1rem; margin-bottom: 3px; }
+.footer-note { max-width: 400px; font-size: .8rem; color: rgba(255,255,255,.4); line-height: 1.5; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-links { display: none; } .hamburger { display: flex; }
+  .stats-inner { grid-template-columns: repeat(2,1fr); }
+  footer { flex-direction: column; }
+}
+@media (max-width: 480px) {
+  .stats-inner { grid-template-columns: repeat(2,1fr); }
+  .controls { flex-direction: column; align-items: stretch; }
+  .dl-btns { justify-content: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Stroke Access Score</div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="/map">Map</a>
+    <a class="nav-link" href="/about">About</a>
+    <a class="nav-link active" href="/data">Data</a>
+    <a class="nav-link" href="/changelog">Data Notes</a>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div id="nav-drawer">
+  <a href="/" onclick="closeNav()">Home</a>
+  <a href="/map" onclick="closeNav()">Map</a>
+  <a href="/about" onclick="closeNav()">About</a>
+  <a class="active" href="/data" onclick="closeNav()">Data</a>
+  <a href="/changelog" onclick="closeNav()">Data Notes</a>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <span class="section-label">ZIP-Level Dataset</span>
+    <h1>LA County Stroke Access Data</h1>
+    <p>Full ZIP-level dataset for LA County — SAS scores, nearest stroke center, demographics, and vulnerability flags. Filter, sort, and download.</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-strip">
+  <div class="stats-inner" id="stat-boxes">
+    <div class="sbox"><span class="n" id="st-total">—</span><span class="l">LA County ZIPs scored</span></div>
+    <div class="sbox"><span class="n" id="st-limited" style="color:#e05252">—</span><span class="l">Limited Access (0–39)</span></div>
+    <div class="sbox"><span class="n" id="st-moderate" style="color:#f59e0b">—</span><span class="l">Moderate Access (40–69)</span></div>
+    <div class="sbox"><span class="n" id="st-strong" style="color:#4ade80">—</span><span class="l">Strong Access (70–100)</span></div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="search-box">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="pointer-events:none">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+    </svg>
+    <input type="text" id="search-input" placeholder="Search ZIP code or facility name…" autocomplete="off">
+  </div>
+  <span class="row-count" id="row-count"></span>
+  <div class="dl-btns">
+    <button class="dl-btn" onclick="downloadCSV()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Download CSV
+    </button>
+    <button class="dl-btn primary" onclick="downloadExcel()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Download Excel
+    </button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <div id="loading-msg">Loading data…</div>
+  <table id="data-table" style="display:none">
+    <thead>
+      <tr>
+        <th data-col="zcta">ZIP Code</th>
+        <th data-col="sas_score">SAS Score</th>
+        <th data-col="access_level">Access Level</th>
+        <th data-col="best_facility_name">Nearest Stroke Center</th>
+        <th data-col="best_facility_type">Cert.</th>
+        <th data-col="drive_minutes">Drive Time</th>
+        <th data-col="pct_hispanic">% Hispanic</th>
+        <th data-col="pct_black_nh">% Black</th>
+        <th data-col="pct_white_nh">% White</th>
+        <th data-col="median_hh_income">Median Income</th>
+        <th data-col="flags">Flags</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<p class="data-note">Scores are based on LA County EMS certified stroke center data and CMS hospital data. EMNet national certification data pending. Not for clinical use.</p>
+
+<hr style="border:none;border-top:1px solid var(--divider)">
+<footer>
+  <div>
+    <div class="footer-logo">Stroke Access Score</div>
+    <div style="font-size:.82rem">James Beavis RN BSN SCRN &amp; Mike Morales</div>
+    <div style="font-size:.73rem;color:rgba(255,255,255,.35);margin-top:4px">
+      © <span id="cy"></span> James Beavis &amp; Mike Morales · CC BY 4.0
+    </div>
+  </div>
+  <div class="footer-note">Not for clinical use. Research prototype.</div>
+</footer>
+
+<script>
+// ── LA County ZIP prefixes ──
+const LA_PREFIXES = ['900','901','902','903','904','905','906','907','908',
+                     '910','911','912','913','914','915','916','917','918','919','935'];
+
+function isLA(zcta) { return LA_PREFIXES.some(p => String(zcta).startsWith(p)); }
+
+// ── CSV parser ──
+function parseLine(raw) {
+  const out=[]; let cur='',q=false;
+  for(let i=0;i<raw.length;i++){
+    const c=raw[i];
+    if(c==='"'){q=!q;continue;}
+    if(c===','&&!q){out.push(cur);cur='';continue;}
+    cur+=c;
+  }
+  out.push(cur); return out;
+}
+function parseCSV(text) {
+  const lines=text.trim().split('\n');
+  const hdrs=parseLine(lines[0]).map(h=>h.trim());
+  return lines.slice(1).filter(Boolean).map(l=>{
+    const vals=parseLine(l),obj={};
+    hdrs.forEach((h,i)=>{ obj[h]=(vals[i]??'').trim(); });
+    return obj;
+  });
+}
+function num(v,fb=null){ const n=parseFloat(v); return isNaN(n)?fb:n; }
+
+// ── State ──
+let allRows = [];
+let filteredRows = [];
+let sortCol = 'sas_score';
+let sortDir = 'asc';
+let searchVal = '';
+
+// ── Load data ──
+async function loadData() {
+  const [csvRes, cacheRes] = await Promise.all([
+    fetch('./ca_zip_scores.csv'),
+    fetch('./drive_time_cache.json'),
+  ]);
+  const [csvText, cache] = await Promise.all([csvRes.text(), cacheRes.json()]);
+
+  // Build drive-time lookup: "zcta_facilityId" → minutes
+  const driveMap = new Map();
+  Object.values(cache).forEach(({zcta, facility_id, drive_minutes}) => {
+    driveMap.set(`${zcta}_${facility_id}`, drive_minutes);
+  });
+
+  const rows = parseCSV(csvText);
+  allRows = rows
+    .filter(r => isLA(r.zcta))
+    .map(r => {
+      const score = num(r.sas_score);
+      const mins  = driveMap.get(`${r.zcta}_${r.best_facility_id}`) ?? null;
+      return {
+        zcta:               r.zcta,
+        sas_score:          score,
+        access_level:       score === null ? '' : score < 40 ? 'Limited' : score < 70 ? 'Moderate' : 'Strong',
+        best_facility_name: r.best_facility_name || '—',
+        best_facility_type: r.best_facility_type || '—',
+        drive_minutes:      mins,
+        pct_hispanic:       num(r.pct_hispanic, 0),
+        pct_black_nh:       num(r.pct_black_nh, 0),
+        pct_white_nh:       num(r.pct_white_nh, 0),
+        median_hh_income:   num(r.median_hh_income),
+        sev:  +r.socioeconomic_vulnerability_flag || 0,
+        crf:  +r.clinical_risk_flag               || 0,
+        dj:   +r.double_jeopardy_flag             || 0,
+        flags: (+r.socioeconomic_vulnerability_flag||0) + (+r.clinical_risk_flag||0) + (+r.double_jeopardy_flag||0),
+      };
+    });
+
+  populateStats();
+  applyFilterSort();
+  document.getElementById('loading-msg').style.display = 'none';
+  document.getElementById('data-table').style.display  = 'table';
+}
+
+function populateStats() {
+  const scored = allRows.filter(r => r.sas_score !== null);
+  document.getElementById('st-total').textContent   = scored.length;
+  document.getElementById('st-limited').textContent = scored.filter(r => r.sas_score < 40).length;
+  document.getElementById('st-moderate').textContent= scored.filter(r => r.sas_score >= 40 && r.sas_score < 70).length;
+  document.getElementById('st-strong').textContent  = scored.filter(r => r.sas_score >= 70).length;
+}
+
+// ── Filter + Sort ──
+function applyFilterSort() {
+  const q = searchVal.toLowerCase();
+  filteredRows = allRows.filter(r =>
+    !q ||
+    r.zcta.includes(q) ||
+    r.best_facility_name.toLowerCase().includes(q)
+  );
+  filteredRows.sort((a, b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (av === null || av === undefined) av = sortDir === 'asc' ? Infinity : -Infinity;
+    if (bv === null || bv === undefined) bv = sortDir === 'asc' ? Infinity : -Infinity;
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    return sortDir === 'asc' ? (av > bv ? 1 : av < bv ? -1 : 0)
+                             : (av < bv ? 1 : av > bv ? -1 : 0);
+  });
+  renderTable();
+  document.getElementById('row-count').textContent =
+    `Showing ${filteredRows.length} of ${allRows.length} ZIP codes`;
+}
+
+// ── Render ──
+function pct(v) { return v != null ? v.toFixed(1) + '%' : '—'; }
+function money(v) { return v != null ? '$' + Math.round(v).toLocaleString() : '—'; }
+function scoreCell(s) {
+  if (s === null) return '<td>—</td>';
+  const cls = s < 40 ? 'score-limited' : s < 70 ? 'score-moderate' : 'score-strong';
+  return `<td><span class="score-badge ${cls}">${s.toFixed(0)}</span></td>`;
+}
+function accessCell(a) {
+  if (!a) return '<td>—</td>';
+  const cls = a === 'Limited' ? 'access-limited' : a === 'Moderate' ? 'access-moderate' : 'access-strong';
+  return `<td><span class="access-pill ${cls}">${a}</span></td>`;
+}
+function certCell(t) {
+  const known = ['CSC','TSC','PSC','ASRH'];
+  if (!known.includes(t)) return `<td><span style="font-size:.78rem;color:#888">${t||'—'}</span></td>`;
+  return `<td><span class="cert cert-${t}">${t}</span></td>`;
+}
+function flagsCell(r) {
+  const f = [];
+  if (r.dj)  f.push('<span class="flag flag-dj">DJ</span>');
+  else {
+    if (r.sev) f.push('<span class="flag flag-sev">SEV</span>');
+    if (r.crf) f.push('<span class="flag flag-crf">CRF</span>');
+  }
+  return f.length ? `<td><div class="flag-wrap">${f.join('')}</div></td>` : '<td>—</td>';
+}
+
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = filteredRows.map(r => `<tr>
+    <td class="zip">${r.zcta}</td>
+    ${scoreCell(r.sas_score)}
+    ${accessCell(r.access_level)}
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.best_facility_name}">${r.best_facility_name}</td>
+    ${certCell(r.best_facility_type)}
+    <td>${r.drive_minutes != null ? r.drive_minutes.toFixed(1) + ' min' : '—'}</td>
+    <td>${pct(r.pct_hispanic)}</td>
+    <td>${pct(r.pct_black_nh)}</td>
+    <td>${pct(r.pct_white_nh)}</td>
+    <td>${money(r.median_hh_income)}</td>
+    ${flagsCell(r)}
+  </tr>`).join('');
+}
+
+// ── Sort headers ──
+document.querySelectorAll('thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+    else { sortCol = col; sortDir = 'asc'; }
+    document.querySelectorAll('thead th').forEach(h => h.classList.remove('sorted-asc','sorted-desc'));
+    th.classList.add('sorted-' + sortDir);
+    applyFilterSort();
+  });
+});
+// Set default sort indicator
+document.querySelector('thead th[data-col="sas_score"]').classList.add('sorted-asc');
+
+// ── Search ──
+let searchTimer = null;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { searchVal = e.target.value.trim(); applyFilterSort(); }, 120);
+});
+
+// ── Downloads ──
+function exportRows() {
+  return filteredRows.map(r => ({
+    'ZIP Code':          r.zcta,
+    'SAS Score':         r.sas_score ?? '',
+    'Access Level':      r.access_level,
+    'Nearest Facility':  r.best_facility_name,
+    'Cert. Level':       r.best_facility_type,
+    'Drive Time (min)':  r.drive_minutes != null ? r.drive_minutes.toFixed(1) : '',
+    '% Hispanic':        r.pct_hispanic != null ? r.pct_hispanic.toFixed(1) : '',
+    '% Black':           r.pct_black_nh != null ? r.pct_black_nh.toFixed(1) : '',
+    '% White':           r.pct_white_nh != null ? r.pct_white_nh.toFixed(1) : '',
+    'Median Income':     r.median_hh_income != null ? Math.round(r.median_hh_income) : '',
+    'SEV Flag':          r.sev,
+    'CRF Flag':          r.crf,
+    'Double Jeopardy':   r.dj,
+  }));
+}
+function downloadCSV() {
+  const rows = exportRows();
+  if (!rows.length) return;
+  const hdrs = Object.keys(rows[0]);
+  const lines = [hdrs.join(','), ...rows.map(r => hdrs.map(h => {
+    const v = String(r[h] ?? '');
+    return v.includes(',') ? `"${v}"` : v;
+  }).join(','))];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'la-county-sas-data.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function downloadExcel() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded. Please try again.'); return; }
+  const ws = XLSX.utils.json_to_sheet(exportRows());
+  // Auto-width
+  const cols = Object.keys(exportRows()[0] || {});
+  ws['!cols'] = cols.map(c => ({ wch: Math.min(30, Math.max(c.length + 2, 12)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'LA County SAS Data');
+  XLSX.writeFile(wb, 'la-county-sas-data.xlsx');
+}
+
+// ── Nav ──
+function toggleNav(){
+  const d=document.getElementById('nav-drawer'), b=document.getElementById('hamburger');
+  const open=d.classList.toggle('open'); b.setAttribute('aria-expanded',open);
+}
+function closeNav(){
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('hamburger').setAttribute('aria-expanded','false');
+}
+document.addEventListener('click', e => {
+  const dr=document.getElementById('nav-drawer'), bt=document.getElementById('hamburger');
+  if(dr.classList.contains('open')&&!dr.contains(e.target)&&!bt.contains(e.target)) closeNav();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cy=document.getElementById('cy'); if(cy) cy.textContent=new Date().getFullYear();
+  loadData();
+});
+</script>
+</body>
+</html>
