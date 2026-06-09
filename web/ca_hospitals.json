@@ -4802,5 +4802,37 @@
     "telephone": "(661) 253-8000",
     "cert_level": "PSC",
     "source": "LA County EMS Directory July 2025"
+  },
+  {
+    "facility_id": "EMS_PIH_WHITTIER",
+    "facility_name": "PIH HEALTH WHITTIER HOSPITAL",
+    "hospital_type": "Acute Care Hospitals",
+    "hospital_ownership": "Voluntary non-profit - Other",
+    "hospital_overall_rating": "",
+    "stroke_level": "CSC",
+    "lat": 33.9784,
+    "lon": -118.0323,
+    "address": "12401 E. WASHINGTON BLVD",
+    "city": "WHITTIER",
+    "county": "LOS ANGELES",
+    "telephone": "(562) 698-0811",
+    "cert_level": "CSC",
+    "source": "LA County EMS Directory July 2025"
+  },
+  {
+    "facility_id": "EMS_EMANATE_QUEEN_VALLEY",
+    "facility_name": "EMANATE HEALTH QUEEN OF THE VALLEY HOSPITAL",
+    "hospital_type": "Acute Care Hospitals",
+    "hospital_ownership": "Voluntary non-profit - Church",
+    "hospital_overall_rating": "",
+    "stroke_level": "CSC",
+    "lat": 34.0697,
+    "lon": -117.9389,
+    "address": "1115 SOUTH SUNSET AVE",
+    "city": "WEST COVINA",
+    "county": "LOS ANGELES",
+    "telephone": "(626) 962-4011",
+    "cert_level": "CSC",
+    "source": "LA County EMS Directory July 2025"
   }
 ]

@@ -42,21 +42,21 @@ nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 5
 #nav-drawer a:hover, #nav-drawer a.active { color: #fff; background: rgba(255,255,255,.07); }
 
 /* Hero */
-.hero { background: var(--navy); color: #fff; padding: clamp(40px,6vw,72px) 24px clamp(32px,4vw,56px); }
+.hero { background: var(--navy); color: #fff; padding: 20px 24px 16px; }
 .hero-inner { max-width: 1200px; margin: 0 auto; }
 .section-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--pink); margin-bottom: 10px; }
-.hero h1 { font-size: clamp(1.6rem,3vw,2.4rem); line-height: 1.15; margin-bottom: 8px; }
-.hero p { font-size: .95rem; color: rgba(255,255,255,.65); max-width: 640px; }
+.hero h1 { font-size: clamp(1.3rem,2.5vw,1.8rem); line-height: 1.15; margin-bottom: 4px; }
+.hero p { font-size: .88rem; color: rgba(255,255,255,.65); max-width: 640px; }
 
 /* Stats row */
-.stats-strip { background: #0a0a2e; border-top: 1px solid rgba(255,255,255,.1); padding: 20px 24px; }
-.stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-.sbox { text-align: center; padding: 14px 8px; border: 1px solid rgba(255,255,255,.12); }
-.sbox .n { font-family: 'Roboto Slab', serif; font-size: clamp(1.4rem,2.5vw,2rem); color: var(--pink); line-height: 1; display: block; margin-bottom: 5px; }
-.sbox .l { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.45); line-height: 1.4; }
+.stats-strip { background: #0a0a2e; border-top: 1px solid rgba(255,255,255,.1); padding: 10px 24px; }
+.stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.sbox { text-align: center; padding: 8px 6px; border: 1px solid rgba(255,255,255,.12); }
+.sbox .n { font-family: 'Roboto Slab', serif; font-size: clamp(1.1rem,2vw,1.5rem); color: var(--pink); line-height: 1; display: block; margin-bottom: 3px; }
+.sbox .l { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.45); line-height: 1.4; }
 
 /* Controls */
-.controls { max-width: 1200px; margin: 0 auto; padding: 20px 24px 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.controls { max-width: 1200px; margin: 0 auto; padding: 10px 24px 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .search-box { flex: 1; min-width: 200px; position: relative; }
 .search-box input { width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1.5px solid var(--divider); background: #fff; font-family: 'Roboto', sans-serif; font-size: .88rem; color: var(--text); outline: none; }
 .search-box input:focus { border-color: var(--navy); }
@@ -74,7 +74,7 @@ nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 5
    This prevents the header from overlapping the controls bar. */
 .table-outer { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
 .table-wrap {
-  max-height: calc(100vh - 280px); /* viewport minus nav + stats + controls */
+  max-height: calc(100vh - 180px); /* tighter offset — hero and stats are now compact */
   min-height: 400px;
   overflow-y: auto;
   overflow-x: auto;
