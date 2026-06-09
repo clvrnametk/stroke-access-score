@@ -100,15 +100,21 @@ td.zip { font-family: 'Roboto Slab', serif; font-weight: 700; font-size: .9rem; 
 
 /* Score badge */
 .score-badge { display: inline-block; padding: 2px 8px; font-family: 'Roboto Slab', serif; font-weight: 700; font-size: .88rem; min-width: 36px; text-align: center; }
-.score-limited  { background: #fdecea; color: #c0392b; }
-.score-moderate { background: #fef3e2; color: #d97706; }
-.score-strong   { background: #edf7ee; color: #1a7340; }
+.score-very-limited  { background: #fde8e8; color: #9b1c1c; }
+.score-limited       { background: #fdf0e8; color: #9a3412; }
+.score-moderate-low  { background: #fef9e7; color: #92400e; }
+.score-moderate      { background: #f3f9e8; color: #3a5c1a; }
+.score-good          { background: #e8f5e9; color: #2d6a1e; }
+.score-strong        { background: #e0f0e5; color: #1a5c30; }
 
 /* Access pill */
 .access-pill { display: inline-block; padding: 2px 9px; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
-.access-limited  { background: #c0392b; color: #fff; }
-.access-moderate { background: #e67e22; color: #fff; }
-.access-strong   { background: #1a7340; color: #fff; }
+.access-very-limited  { background: #d7191c; color: #fff; }
+.access-limited       { background: #f07b4f; color: #fff; }
+.access-moderate-low  { background: #fec44f; color: #333; }
+.access-moderate      { background: #a6d96a; color: #333; }
+.access-good          { background: #4dac26; color: #fff; }
+.access-strong        { background: #1a7837; color: #fff; }
 
 /* Cert badge */
 .cert { display: inline-block; padding: 2px 7px; font-size: .68rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #fff; }
@@ -186,9 +192,9 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
 <div class="stats-strip">
   <div class="stats-inner" id="stat-boxes">
     <div class="sbox"><span class="n" id="st-total">—</span><span class="l">LA County ZIPs scored</span></div>
-    <div class="sbox"><span class="n" id="st-limited" style="color:#e05252">—</span><span class="l">Limited Access (0–39)</span></div>
-    <div class="sbox"><span class="n" id="st-moderate" style="color:#f59e0b">—</span><span class="l">Moderate Access (40–69)</span></div>
-    <div class="sbox"><span class="n" id="st-strong" style="color:#4ade80">—</span><span class="l">Strong Access (70–100)</span></div>
+    <div class="sbox"><span class="n" id="st-limited" style="color:#d7191c">—</span><span class="l">Low Access (0–40)</span></div>
+    <div class="sbox"><span class="n" id="st-moderate" style="color:#d4a008">—</span><span class="l">Moderate Access (41–70)</span></div>
+    <div class="sbox"><span class="n" id="st-strong" style="color:#4dac26">—</span><span class="l">Strong Access (71–100)</span></div>
   </div>
 </div>
 
@@ -345,7 +351,7 @@ async function loadData() {
         zcta:                   r.zcta,
         total_pop:              num(r.total_pop, 0),
         sas_score:              score,
-        access_level:           score === null ? '' : score < 40 ? 'Limited' : score < 70 ? 'Moderate' : 'Strong',
+        access_level:           score === null ? '' : score <= 24 ? 'Very Limited' : score <= 40 ? 'Limited' : score <= 55 ? 'Moderate-Low' : score <= 70 ? 'Moderate' : score <= 85 ? 'Good' : 'Strong',
         best_facility_name:     r.best_facility_name || '—',
         best_facility_type:     normCert(r.best_facility_type) || r.best_facility_type || '—',
         best_facility_drive_mins:  num(r.best_facility_drive_mins),
@@ -373,9 +379,9 @@ async function loadData() {
 function populateStats() {
   const scored = allRows.filter(r => r.sas_score !== null);
   document.getElementById('st-total').textContent   = scored.length;
-  document.getElementById('st-limited').textContent = scored.filter(r => r.sas_score < 40).length;
-  document.getElementById('st-moderate').textContent= scored.filter(r => r.sas_score >= 40 && r.sas_score < 70).length;
-  document.getElementById('st-strong').textContent  = scored.filter(r => r.sas_score >= 70).length;
+  document.getElementById('st-limited').textContent = scored.filter(r => r.sas_score <= 40).length;
+  document.getElementById('st-moderate').textContent= scored.filter(r => r.sas_score > 40 && r.sas_score <= 70).length;
+  document.getElementById('st-strong').textContent  = scored.filter(r => r.sas_score > 70).length;
 }
 
 // ── Filter + Sort ──
@@ -404,15 +410,29 @@ function applyFilterSort() {
 // ── Render ──
 function pct(v) { return v != null ? v.toFixed(1) + '%' : '—'; }
 function money(v) { return v != null ? '$' + Math.round(v).toLocaleString() : '—'; }
+function scoreClass(s) {
+  if (s <= 24) return 'score-very-limited';
+  if (s <= 40) return 'score-limited';
+  if (s <= 55) return 'score-moderate-low';
+  if (s <= 70) return 'score-moderate';
+  if (s <= 85) return 'score-good';
+  return 'score-strong';
+}
+function accessClass(a) {
+  if (a === 'Very Limited')  return 'access-very-limited';
+  if (a === 'Limited')       return 'access-limited';
+  if (a === 'Moderate-Low')  return 'access-moderate-low';
+  if (a === 'Moderate')      return 'access-moderate';
+  if (a === 'Good')          return 'access-good';
+  return 'access-strong';
+}
 function scoreCell(s) {
   if (s === null) return '<td>—</td>';
-  const cls = s < 40 ? 'score-limited' : s < 70 ? 'score-moderate' : 'score-strong';
-  return `<td><span class="score-badge ${cls}">${s.toFixed(0)}</span></td>`;
+  return `<td><span class="score-badge ${scoreClass(s)}">${s.toFixed(0)}</span></td>`;
 }
 function accessCell(a) {
   if (!a) return '<td>—</td>';
-  const cls = a === 'Limited' ? 'access-limited' : a === 'Moderate' ? 'access-moderate' : 'access-strong';
-  return `<td><span class="access-pill ${cls}">${a}</span></td>`;
+  return `<td><span class="access-pill ${accessClass(a)}">${a}</span></td>`;
 }
 // Infer badge from raw CMS hospital type when proper cert label is unavailable
 function normCert(raw) {
