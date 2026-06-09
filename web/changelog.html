@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L8BH5KFWLY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-L8BH5KFWLY');
+</script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/_mm_icon.png">
+<link rel="apple-touch-icon" href="/_mm_icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changelog — Stroke Access Score</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap">
+<style>
+:root {
+  --navy:    #0f0f3c;
+  --pink:    #e10087;
+  --bg:      #f5f4f8;
+  --text:    #3c3c5a;
+  --divider: #e0e0ec;
+  --up:      #1a7340;  /* upgrade green */
+  --up-bg:   #eaf7f0;
+  --down:    #9b3a1a;  /* downgrade coral */
+  --down-bg: #fdf0eb;
+  --same:    #555;     /* confirmed neutral */
+  --same-bg: #f2f2f4;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+html { scroll-behavior: smooth; overflow-x: hidden; background: #0f0f3c; }
+body { font-family: 'Roboto', sans-serif; color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+h1,h2,h3,h4 { font-family: 'Roboto Slab', serif; font-weight: 700; }
+a { color: var(--pink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Nav ── */
+nav {
+  position: sticky; top: 0; z-index: 500; background: var(--navy);
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.nav-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1.05rem; }
+.nav-links { display: flex; gap: 4px; }
+.nav-link {
+  color: rgba(255,255,255,.75); padding: 6px 10px; font-size: .9rem;
+  border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+  text-decoration: none; cursor: pointer;
+}
+.nav-link:hover, .nav-link.active { color: #fff; border-bottom-color: var(--pink); }
+.hamburger {
+  display: none; flex-direction: column; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 8px;
+  min-height: 44px; min-width: 44px; align-items: center; justify-content: center;
+}
+.hamburger span { display: block; width: 22px; height: 2px; background: #fff; }
+.nav-drawer {
+  display: none; position: fixed; top: 56px; left: 0; right: 0;
+  background: var(--navy); border-top: 1px solid rgba(255,255,255,.1); z-index: 490;
+}
+.nav-drawer.open { display: block; }
+.nav-drawer-link {
+  display: block; color: rgba(255,255,255,.8); padding: 14px 24px;
+  border-left: 3px solid transparent; cursor: pointer;
+  transition: background .15s, border-color .15s; text-decoration: none; min-height: 44px;
+}
+.nav-drawer-link:hover, .nav-drawer-link.active {
+  background: rgba(255,255,255,.06); border-left-color: var(--pink); color: #fff;
+}
+
+/* ── Section label ── */
+.section-label {
+  display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--pink); margin-bottom: 10px;
+}
+
+/* ── Hero ── */
+.cl-hero {
+  background: var(--navy); color: #fff;
+  padding: clamp(48px,7vw,80px) 24px clamp(40px,5vw,64px);
+}
+.cl-hero .inner { max-width: 820px; margin: 0 auto; }
+.cl-hero h1 { font-size: clamp(1.8rem,4vw,2.8rem); line-height: 1.1; margin-bottom: 10px; }
+.cl-hero .meta { font-size: .9rem; color: rgba(255,255,255,.55); margin-bottom: 20px; }
+.cl-hero .meta strong { color: rgba(255,255,255,.8); font-weight: 500; }
+.cl-hero .summary { font-size: clamp(.95rem,2vw,1.1rem); color: rgba(255,255,255,.75); max-width: 680px; line-height: 1.6; }
+
+/* ── Stats strip ── */
+.stats-strip {
+  background: #0a0a2e; border-top: 1px solid rgba(255,255,255,.1);
+  padding: 28px 24px;
+}
+.stats-strip .inner { max-width: 820px; margin: 0 auto; }
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.stat-box { text-align: center; padding: 16px 8px; border: 1px solid rgba(255,255,255,.12); }
+.stat-box .num { font-family: 'Roboto Slab', serif; font-size: clamp(1.8rem,3vw,2.4rem); color: var(--pink); line-height: 1; display: block; margin-bottom: 6px; }
+.stat-box .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.5); line-height: 1.4; }
+
+/* ── Body ── */
+.cl-body { max-width: 820px; margin: 0 auto; padding: 56px 24px 80px; }
+.cl-section { margin-bottom: 52px; }
+.cl-section h2 {
+  font-size: clamp(1.3rem,3vw,1.8rem); color: var(--navy); margin-bottom: 8px;
+  border-left: 4px solid var(--pink); padding-left: 14px;
+}
+.cl-section p { margin-top: 12px; color: var(--text); font-size: .97rem; max-width: 700px; }
+.cl-section p + p { margin-top: 10px; }
+
+/* ── Hospital change cards ── */
+.changes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+.change-card { padding: 14px 16px; border-left: 4px solid; }
+.change-card.up   { background: var(--up-bg);   border-color: var(--up);   }
+.change-card.down { background: var(--down-bg); border-color: var(--down); }
+.change-card.same { background: var(--same-bg); border-color: #ccc; }
+.change-card .hosp-name { font-weight: 600; font-size: .92rem; color: var(--navy); margin-bottom: 5px; }
+.change-card .tier-change { display: flex; align-items: center; gap: 8px; font-size: .84rem; }
+.badge {
+  display: inline-block; padding: 2px 8px; font-size: .7rem; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase; color: #fff;
+}
+.badge.csc  { background: #c0392b; }
+.badge.tsc  { background: #7c3aed; }
+.badge.psc  { background: #1d6fa4; }
+.badge.asrh { background: #6b7280; }
+.arrow { font-size: .8rem; color: #888; }
+.tier-note { font-size: .8rem; margin-top: 4px; }
+.tier-note.up-note   { color: var(--up); }
+.tier-note.down-note { color: var(--down); }
+.tier-note.same-note { color: var(--same); }
+
+.confirmed-note {
+  margin-top: 16px; padding: 12px 16px;
+  background: var(--same-bg); border-left: 3px solid #ccc;
+  font-size: .88rem; color: #666;
+}
+
+/* ── Score changes table ── */
+.score-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: .88rem; }
+.score-table th {
+  background: var(--navy); color: #fff; padding: 9px 14px;
+  text-align: left; font-weight: 500; font-family: 'Roboto', sans-serif;
+}
+.score-table td { padding: 9px 14px; border-bottom: 1px solid var(--divider); }
+.score-table tr:last-child td { border-bottom: none; }
+.score-table tr:nth-child(even) td { background: #f9f9fb; }
+.delta { font-family: 'Roboto Slab', serif; font-weight: 700; font-size: 1rem; }
+.delta.pos { color: var(--up); }
+.delta.neg { color: var(--down); }
+
+/* ── Correction note box ── */
+.correction-note {
+  margin-top: 20px; padding: 16px 20px;
+  background: rgba(225,0,135,.05); border-left: 4px solid var(--pink);
+  font-size: .92rem; color: var(--text); line-height: 1.65;
+}
+
+/* ── Unmatched note ── */
+.unmatched-note {
+  margin-top: 20px; padding: 14px 16px;
+  background: #fff8e1; border-left: 4px solid #f59e0b;
+  font-size: .88rem; color: #665000;
+}
+.unmatched-note strong { color: #4a3800; }
+
+/* ── What's next ── */
+.whats-next {
+  background: var(--navy); color: #fff;
+  padding: 48px 24px;
+}
+.whats-next .inner { max-width: 820px; margin: 0 auto; }
+.whats-next h2 { font-size: clamp(1.3rem,3vw,1.8rem); margin-bottom: 14px; }
+.whats-next p { font-size: .97rem; color: rgba(255,255,255,.72); max-width: 640px; line-height: 1.65; }
+
+/* ── Divider ── */
+hr { border: none; border-top: 1px solid var(--divider); margin: 0; }
+
+/* ── Footer ── */
+footer {
+  background: var(--navy); color: rgba(255,255,255,.65);
+  padding: 36px 24px; display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 24px; flex-wrap: wrap;
+}
+.footer-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
+.footer-note { max-width: 420px; font-size: .82rem; line-height: 1.6; color: rgba(255,255,255,.45); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .changes-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .cl-body { padding: 40px 16px 60px; }
+  footer { flex-direction: column; padding: 28px 16px; }
+  .score-table { font-size: .82rem; }
+  .score-table th, .score-table td { padding: 8px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav id="main-nav">
+  <div class="nav-logo">Stroke Access Score</div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="/map">Map</a>
+    <a class="nav-link" href="/about">About</a>
+    <a class="nav-link active" href="/changelog">Changelog</a>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <a class="nav-drawer-link" href="/" onclick="closeNav()">Home</a>
+  <a class="nav-drawer-link" href="/map" onclick="closeNav()">Map</a>
+  <a class="nav-drawer-link" href="/about" onclick="closeNav()">About</a>
+  <a class="nav-drawer-link active" href="/changelog" onclick="closeNav()">Changelog</a>
+</div>
+
+<!-- ── Data Update #1 ── -->
+<div class="cl-hero">
+  <div class="inner">
+    <span class="section-label">Data Update #1</span>
+    <h1>LA County EMS Certification Correction</h1>
+    <div class="meta">
+      <strong>Published:</strong> June 8, 2026 &nbsp;·&nbsp;
+      <strong>Source:</strong> Los Angeles County Emergency Medical Services Approved Stroke Center Directory, July 28, 2025
+    </div>
+    <p class="summary">
+      Replaced CMS quality rating proxy with official LA County EMS stroke certification data
+      for 51 LA County hospitals. This is the first step toward full EMNet certification
+      integration statewide.
+    </p>
+  </div>
+</div>
+
+<!-- Stats strip -->
+<div class="stats-strip">
+  <div class="inner">
+    <div class="stats-row">
+      <div class="stat-box">
+        <span class="num">51</span>
+        <span class="lbl">Hospitals matched &amp; updated</span>
+      </div>
+      <div class="stat-box">
+        <span class="num">448</span>
+        <span class="lbl">ZIP codes re-scored</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" style="color:#4ade80">218</span>
+        <span class="lbl">Scores increased</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" style="color:#fb923c">34</span>
+        <span class="lbl">Scores decreased</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Body -->
+<div class="cl-body">
+
+  <!-- What changed and why -->
+  <div class="cl-section">
+    <h2>What changed and why</h2>
+    <p>
+      The original Stroke Access Score pipeline used <strong>CMS Hospital Compare overall quality
+      ratings (1–5 stars)</strong> as a proxy for stroke center certification — assigning CSC to
+      5-star hospitals, TSC to 4-star hospitals, and PSC to all others. This was an explicit
+      approximation, documented in the methodology, pending access to authoritative certification data.
+    </p>
+    <p>
+      This update replaces that proxy for LA County hospitals with the
+      <strong>LA County EMS Approved Stroke Center Directory</strong> — the official list of
+      facilities verified by the county's Emergency Medical Services agency. For the 51 hospitals
+      matched, the tier assignment now reflects actual certification level rather than a quality
+      rating estimate.
+    </p>
+    <p>
+      EMNet national stroke certification data remains pending and will trigger a full statewide
+      update when it arrives.
+    </p>
+  </div>
+
+  <!-- Hospital certification changes -->
+  <div class="cl-section">
+    <h2>Hospital certification changes</h2>
+    <p>Key reclassifications resulting from the EMS directory match:</p>
+
+    <div class="changes-grid">
+
+      <!-- Upgrades -->
+      <div class="change-card up">
+        <div class="hosp-name">Antelope Valley Hospital</div>
+        <div class="tier-change">
+          <span class="badge psc">PSC</span>
+          <span class="arrow">→</span>
+          <span class="badge csc">CSC</span>
+        </div>
+        <div class="tier-note up-note">↑ Upgrade</div>
+      </div>
+
+      <div class="change-card up">
+        <div class="hosp-name">Glendale Adventist Medical Center</div>
+        <div class="tier-change">
+          <span class="badge tsc">TSC</span>
+          <span class="arrow">→</span>
+          <span class="badge csc">CSC</span>
+        </div>
+        <div class="tier-note up-note">↑ Upgrade</div>
+      </div>
+
+      <!-- Downgrades -->
+      <div class="change-card down">
+        <div class="hosp-name">PIH Health Downey Hospital</div>
+        <div class="tier-change">
+          <span class="badge csc">CSC</span>
+          <span class="arrow">→</span>
+          <span class="badge psc">PSC</span>
+        </div>
+        <div class="tier-note down-note">↓ Correction (over-rated by CMS proxy)</div>
+      </div>
+
+      <div class="change-card down">
+        <div class="hosp-name">Providence Little Co. of Mary, San Pedro</div>
+        <div class="tier-change">
+          <span class="badge tsc">TSC</span>
+          <span class="arrow">→</span>
+          <span class="badge psc">PSC</span>
+        </div>
+        <div class="tier-note down-note">↓ Correction (over-rated by CMS proxy)</div>
+      </div>
+
+      <div class="change-card down">
+        <div class="hosp-name">Kaiser Foundation Hospital Woodland Hills</div>
+        <div class="tier-change">
+          <span class="badge tsc">TSC</span>
+          <span class="arrow">→</span>
+          <span class="badge psc">PSC</span>
+        </div>
+        <div class="tier-note down-note">↓ Correction (over-rated by CMS proxy)</div>
+      </div>
+
+      <div class="change-card down">
+        <div class="hosp-name">USC Verdugo Hills Hospital</div>
+        <div class="tier-change">
+          <span class="badge tsc">TSC</span>
+          <span class="arrow">→</span>
+          <span class="badge psc">PSC</span>
+        </div>
+        <div class="tier-note down-note">↓ Correction (over-rated by CMS proxy)</div>
+      </div>
+
+    </div>
+
+    <div class="confirmed-note">
+      <strong>21 hospitals confirmed</strong> at their existing level — CMS proxy matched the official EMS directory. No score change for ZIPs served only by these facilities.
+    </div>
+
+    <div class="unmatched-note" style="margin-top:12px">
+      <strong>1 unmatched hospital:</strong> Henry Mayo Newhall Hospital (Valencia, 91355) — not found
+      in the CMS dataset used in Phase 0. This will be resolved when full EMNet data arrives.
+    </div>
+  </div>
+
+  <!-- Score changes by magnitude -->
+  <div class="cl-section">
+    <h2>Score changes by magnitude</h2>
+
+    <table class="score-table">
+      <thead>
+        <tr>
+          <th>Change</th>
+          <th>Cause</th>
+          <th>ZIP codes affected</th>
+          <th>Representative areas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="delta pos">+50</span></td>
+          <td>PSC → CSC</td>
+          <td>7 ZIPs</td>
+          <td>UCI Health Lakewood/Los Alamitos, MemorialCare Long Beach, USC Arcadia, Pomona Valley, Antelope Valley, UCSF St. Francis</td>
+        </tr>
+        <tr>
+          <td><span class="delta pos">+40</span></td>
+          <td>ASRH → CSC</td>
+          <td>9 ZIPs</td>
+          <td>High Desert / Antelope Valley</td>
+        </tr>
+        <tr>
+          <td><span class="delta pos">+25</span></td>
+          <td>TSC → CSC</td>
+          <td>180+ ZIPs</td>
+          <td>Long Beach, Pasadena/SGV, Glendale/Burbank, San Fernando Valley, Ventura County, Napa/Bay Area</td>
+        </tr>
+        <tr>
+          <td><span class="delta pos">+10 to +35</span></td>
+          <td>Various upgrades</td>
+          <td>29 ZIPs</td>
+          <td>Rural Kern, Mojave, Sierra foothills</td>
+        </tr>
+        <tr>
+          <td><span class="delta neg">−25</span></td>
+          <td>TSC → PSC</td>
+          <td>17 ZIPs</td>
+          <td>SE LA County, Downey corridor, Valley PSCs</td>
+        </tr>
+        <tr>
+          <td><span class="delta neg">−50</span></td>
+          <td>CSC → PSC</td>
+          <td>7 ZIPs</td>
+          <td>Central/East Hollywood corridor (90004, 90005, 90010, 90020, 90027, 90029, 90038)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="correction-note">
+      <strong>A note on the −50 point changes in the Hollywood corridor:</strong> These reflect
+      the data becoming <em>more accurate</em> — those ZIPs were over-rated by the CMS proxy.
+      Their true access level is PSC, not CSC. This correction means the disparity story in
+      majority-minority communities in that corridor is slightly worse than the original data
+      showed, which is an important finding in its own right.
+    </div>
+  </div>
+
+</div><!-- /cl-body -->
+
+<!-- What's next -->
+<div class="whats-next">
+  <div class="inner">
+    <span class="section-label" style="color:rgba(225,0,135,.8)">Coming Next</span>
+    <h2>Update #2 — EMNet National Certification Data</h2>
+    <p>
+      Update #2 will integrate <strong>EMNet national stroke certification data statewide</strong>,
+      replacing all remaining CMS proxy ratings for hospitals outside LA County. This will complete
+      the transition from a quality-rating proxy to a fully certification-based scoring model across
+      all 1,802 California ZIP codes.
+    </p>
+  </div>
+</div>
+
+<hr>
+<footer>
+  <div>
+    <div class="footer-logo">Stroke Access Score</div>
+    <div style="font-size:.85rem">A research project by James Beavis RN BSN SCRN &amp; Mike Morales</div>
+    <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px">
+      © <span id="cy"></span> James Beavis &amp; Mike Morales ·
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
+         style="color:rgba(255,255,255,.4);text-decoration:underline">CC BY 4.0</a>
+    </div>
+  </div>
+  <div class="footer-note">
+    Scores are based on official EMS certification data for LA County and CMS hospital ratings
+    as proxy for all other counties. EMNet certification data pending. Not for clinical use.
+  </div>
+</footer>
+
+<script>
+function toggleNav(){
+  const d=document.getElementById('nav-drawer');
+  const b=document.getElementById('hamburger');
+  const open=d.classList.toggle('open');
+  b.setAttribute('aria-expanded',open);
+}
+function closeNav(){
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('hamburger').setAttribute('aria-expanded','false');
+}
+document.addEventListener('click',e=>{
+  const drawer=document.getElementById('nav-drawer');
+  const btn=document.getElementById('hamburger');
+  if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&!btn.contains(e.target))closeNav();
+});
+document.addEventListener('DOMContentLoaded',()=>{
+  const el=document.getElementById('cy');
+  if(el) el.textContent=new Date().getFullYear();
+});
+</script>
+</body>
+</html>

@@ -2,7 +2,8 @@
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/map", "destination": "/map.html" },
-    { "source": "/about", "destination": "/about.html" }
+    { "source": "/about",     "destination": "/about.html" },
+    { "source": "/changelog", "destination": "/changelog.html" }
   ],
   "cleanUrls": true
 }
