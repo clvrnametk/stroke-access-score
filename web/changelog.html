@@ -486,55 +486,53 @@ footer {
   <!-- Hero strip for Update #2 -->
   <div style="background:var(--navy);color:#fff;padding:28px 0 24px;margin:0 -24px;padding-left:24px;padding-right:24px">
     <span class="section-label">Data Update #2</span>
-    <h2 style="font-size:clamp(1.4rem,3vw,2rem);line-height:1.15;margin-bottom:8px">Hospital Dataset Cleanup</h2>
+    <h2 style="font-size:clamp(1.4rem,3vw,2rem);line-height:1.15;margin-bottom:8px">Scoring Model Revision &amp; Dataset Cleanup</h2>
     <div style="font-size:.88rem;color:rgba(255,255,255,.55);margin-bottom:14px">
       <strong style="color:rgba(255,255,255,.8)">Published:</strong> June 8, 2026
     </div>
     <p style="font-size:.97rem;color:rgba(255,255,255,.72);max-width:680px;line-height:1.6">
-      Two additional corrections were made to the LA County hospital dataset following clinical review.
-      The TSC certification tier was removed statewide as a proxy artifact, and non-certified hospitals
-      in LA County were removed from the dataset entirely. These corrections make the data more accurate
-      but result in lower scores for some ZIP codes — reflecting true access, not degraded care.
+      Four corrections made in this update: TSC removed statewide as a proxy artifact; five non-certified
+      LA County hospitals removed; eight hospitals missing from CMS added from the EMS directory; and the
+      scoring model revised to a CSC-weighted structure with 15-minute drive time increments.
+      Score decreases reflect more accurate data, not degraded care.
     </p>
   </div>
 
-  <!-- Stats for Update #2 -->
+  <!-- Stats for Update #2 — static, documents point-in-time changes -->
   <div style="background:#0a0a2e;border-top:1px solid rgba(255,255,255,.1);padding:20px 0;margin:0 -24px;padding-left:24px;padding-right:24px">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-      <div class="stat-box"><span class="num">63</span><span class="lbl">Hospitals de-certified</span></div>
-      <div class="stat-box"><span class="num">635</span><span class="lbl">ZIP codes re-scored</span></div>
-      <div class="stat-box"><span class="num" style="color:#fb923c">5</span><span class="lbl">Hospitals removed from LA County</span></div>
-      <div class="stat-box"><span class="num" style="color:rgba(255,255,255,.3)">0</span><span class="lbl">Scores increased</span></div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <span class="num" style="color:#fb923c">63</span>
+        <span class="lbl">Hospitals de-certified (TSC removal)</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" style="color:#4ade80">8</span>
+        <span class="lbl">Hospitals added (missing from CMS)</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" style="color:#fb923c">5</span>
+        <span class="lbl">Hospitals removed (LA County non-certified)</span>
+      </div>
+      <div class="stat-box">
+        <span class="num">CSC</span>
+        <span class="lbl">Scoring model revised (CSC-weighted)</span>
+      </div>
     </div>
   </div>
 
   <!-- Update #2 body sections -->
   <div class="cl-section" style="margin-top:40px">
-    <h2>Correction 1 — TSC category removed statewide</h2>
+    <h2>Correction 1 — TSC removed statewide</h2>
     <p>
-      The Thrombectomy-Capable Stroke Center (TSC) tier was assigned entirely by the CMS hospital
-      quality rating proxy — not by any authoritative stroke certification source. LA County EMS and
-      standard California EMS practice recognize only two tiers: <strong>CSC and PSC</strong>. TSC does
-      not exist as a recognized EMS destination category in California.
-    </p>
-    <h3 class="correction-h3">Result</h3>
-    <p>
-      63 hospitals had their certification nulled statewide. 635 ZIP codes were re-scored.
-      All score changes were flat or negative — no ZIP scored higher from this correction.
-      6 ZIP codes in rural Northern California were zeroed out, meaning their nearest
-      previously-labeled facility was TSC only and no certified stroke center is within the
-      cached drive-time radius.
+      TSC was assigned by CMS quality rating proxy only. LA County EMS and California EMS practice
+      recognize only <strong>CSC and PSC</strong>. 63 hospitals nulled. 635 ZIPs re-scored.
+      All changes flat or negative.
     </p>
   </div>
 
   <div class="cl-section">
     <h2>Correction 2 — Non-certified LA County hospitals removed</h2>
-    <p>
-      Any hospital in LA County not appearing on the LA County EMS Approved Stroke Center Directory
-      (July 28, 2025) was removed from the dataset entirely. A hospital not on the EMS directory is
-      not a recognized stroke destination — it should not appear in routing or scoring.
-    </p>
-    <h3 class="correction-h3">5 hospitals removed</h3>
+    <p>5 hospitals removed — not present on the LA County EMS Approved Stroke Center Directory (July 28, 2025):</p>
     <ul class="removed-list">
       <li>Alhambra Hospital Medical Center</li>
       <li>Glendale Memorial Hospital &amp; Health Center</li>
@@ -545,20 +543,74 @@ footer {
   </div>
 
   <div class="cl-section">
-    <h2>What changed and why</h2>
+    <h2>Correction 3 — 8 missing hospitals added</h2>
+    <p>Eight hospitals present in the LA County EMS directory were absent from the CMS dataset and added manually with drive-time collection.</p>
+    <h3 class="correction-h3"><span class="badge csc" style="vertical-align:middle;margin-right:6px">CSC</span> Added</h3>
+    <ul class="removed-list" style="--dot-color:#c0392b">
+      <li>Dignity Health Glendale Memorial</li>
+      <li>Dignity Health Northridge</li>
+      <li>Saint Francis Medical Center (Lynwood)</li>
+      <li>West Hills Hospital</li>
+      <li>PIH Health Whittier</li>
+      <li>Emanate Health Queen of the Valley (West Covina)</li>
+    </ul>
+    <h3 class="correction-h3" style="margin-top:16px"><span class="badge psc" style="vertical-align:middle;margin-right:6px">PSC</span> Added</h3>
+    <ul class="removed-list">
+      <li>Dignity Health California Hospital Medical Center</li>
+      <li>Henry Mayo Newhall Hospital</li>
+    </ul>
+  </div>
+
+  <div class="cl-section">
+    <h2>Correction 4 — Scoring model revised</h2>
     <p>
-      The original pipeline used CMS hospital data as the source of truth for which hospitals existed
-      and what level of care they provided. CMS data is comprehensive for billing purposes but does not
-      reflect EMS stroke certification. This update replaces LA County hospital data with the
-      authoritative LA County EMS directory. For the rest of California, CMS data with the TSC proxy
-      removed remains in use pending EMNet national certification data.
+      The previous model used a flat penalty structure. The revised model weights CSC access heavily with
+      15-minute drive time increments and a major penalty beyond 60 minutes. PSC provides modest
+      mitigation only.
     </p>
+    <div class="penalty-table-wrap" style="margin-top:20px">
+    <table class="score-table">
+      <thead>
+        <tr>
+          <th>Drive Time</th>
+          <th>CSC Before</th>
+          <th>CSC After</th>
+          <th>PSC Before</th>
+          <th>PSC After</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>0–15 min</td>  <td>100</td><td>100</td><td>50</td><td>40</td></tr>
+        <tr><td>15–30 min</td> <td>100</td><td>85</td> <td>50</td><td>32</td></tr>
+        <tr><td>30–45 min</td> <td>70</td> <td>65</td> <td>35</td><td>24</td></tr>
+        <tr><td>45–60 min</td> <td>70</td> <td>50</td> <td>35</td><td>16</td></tr>
+        <tr><td>&gt;60 min</td><td>55</td> <td>25</td> <td>20</td><td>8</td></tr>
+      </tbody>
+    </table>
+    </div>
     <div class="warning-note">
       <strong>Score decreases in this update reflect more accurate data, not worse care.</strong>
-      A ZIP code that previously showed a score of 75 because a TSC-labeled hospital was nearby may now
-      show a lower score because that hospital was not actually a certified stroke destination.
-      The lower score is correct.
+      The revised model more closely follows clinical evidence on the impact of drive time to a
+      thrombectomy-capable center. Lower scores represent a more honest picture of access.
     </div>
+  </div>
+
+  <div class="cl-section">
+    <h2>ZIP code coverage — LA County</h2>
+    <p>
+      303 of 312 LA County ZIP codes scored. 9 excluded as non-residential:
+    </p>
+    <ul class="removed-list" style="margin-top:10px">
+      <li><strong>90090</strong> — Dodger Stadium</li>
+      <li><strong>90261</strong> — Hawthorne PO Box</li>
+      <li><strong>90846</strong> — Long Beach non-residential</li>
+      <li><strong>91023</strong> — Mount Wilson / Angeles National Forest</li>
+      <li><strong>91126</strong> — Caltech</li>
+      <li><strong>91382</strong> — Santa Clarita unincorporated</li>
+      <li><strong>91521</strong> — Disney Studios</li>
+      <li><strong>91522</strong> — Warner Bros. Studios</li>
+      <li><strong>91523</strong> — Burbank non-residential</li>
+    </ul>
   </div>
 
 </div><!-- /cl-body -->
@@ -586,6 +638,7 @@ footer {
         <tr>
           <th>Region</th>
           <th>Certification Source</th>
+          <th>ZIP Codes</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -593,20 +646,26 @@ footer {
         <tr>
           <td><strong style="color:#fff">LA County</strong></td>
           <td>LA County EMS Directory (July 2025)</td>
+          <td id="status-la-count" style="color:rgba(255,255,255,.8)">—</td>
           <td><span class="status-pill s-current">Current</span></td>
         </tr>
         <tr>
           <td><strong style="color:#fff">Rest of California</strong></td>
           <td>CMS hospital data (proxy, TSC removed)</td>
+          <td id="status-ca-count" style="color:rgba(255,255,255,.8)">—</td>
           <td><span class="status-pill s-pending">Pending EMNet</span></td>
         </tr>
         <tr>
           <td><strong style="color:#fff">National</strong></td>
           <td>Not yet scored</td>
+          <td style="color:rgba(255,255,255,.35)">—</td>
           <td><span class="status-pill s-future">Paper 2</span></td>
         </tr>
       </tbody>
     </table>
+    <p style="margin-top:14px;font-size:.82rem;color:rgba(255,255,255,.45)">
+      Total ZIP codes scored statewide: <span id="status-total-count" style="color:rgba(255,255,255,.75);font-weight:500">—</span>
+    </p>
   </div>
 </div>
 
@@ -647,6 +706,76 @@ document.addEventListener('DOMContentLoaded',()=>{
   const el=document.getElementById('cy');
   if(el) el.textContent=new Date().getFullYear();
 });
+
+// ── Dynamic status table — live from CSV ────────────────────────────────────
+const LA_COUNTY_ZIPS = new Set([
+  '90001','90002','90003','90004','90005','90006','90007','90008','90010','90011',
+  '90012','90013','90014','90015','90016','90017','90018','90019','90020','90021',
+  '90022','90023','90024','90025','90026','90027','90028','90029','90031','90032',
+  '90033','90034','90035','90036','90037','90038','90039','90040','90041','90042',
+  '90043','90044','90045','90046','90047','90048','90049','90056','90057','90058',
+  '90059','90061','90062','90063','90064','90065','90066','90067','90068','90069',
+  '90071','90073','90077','90089','90090','90094','90095','90201','90210','90211',
+  '90212','90220','90221','90222','90230','90232','90240','90241','90242','90245',
+  '90247','90248','90249','90250','90254','90255','90260','90261','90262','90263',
+  '90265','90266','90270','90272','90274','90275','90277','90278','90280','90290',
+  '90291','90292','90293','90301','90302','90303','90304','90305','90401','90402',
+  '90403','90404','90405','90501','90502','90503','90504','90505','90506','90601',
+  '90602','90603','90604','90605','90606','90623','90630','90631','90638','90639',
+  '90640','90650','90660','90670','90701','90703','90704','90706','90710','90712',
+  '90713','90715','90716','90717','90723','90731','90732','90744','90745','90746',
+  '90747','90755','90802','90803','90804','90805','90806','90807','90808','90810',
+  '90813','90814','90815','90822','90831','90840','90846','91001','91006','91007',
+  '91008','91010','91011','91016','91020','91023','91024','91030','91040','91042',
+  '91046','91101','91103','91104','91105','91106','91107','91108','91125','91126',
+  '91201','91202','91203','91204','91205','91206','91207','91208','91210','91214',
+  '91301','91302','91303','91304','91306','91307','91311','91316','91321','91324',
+  '91325','91326','91330','91331','91335','91340','91342','91343','91344','91345',
+  '91350','91351','91352','91354','91355','91356','91361','91362','91364','91367',
+  '91381','91382','91384','91387','91390','91401','91402','91403','91405','91406',
+  '91411','91423','91436','91501','91502','91504','91505','91506','91521','91522',
+  '91523','91601','91602','91604','91605','91606','91607','91608','91702','91706',
+  '91709','91710','91711','91722','91723','91724','91731','91732','91733','91740',
+  '91741','91744','91745','91746','91748','91750','91754','91755','91759','91765',
+  '91766','91767','91768','91770','91773','91775','91776','91780','91789','91790',
+  '91791','91792','91801','91803','92397','92821','92823','93243','93510','93523',
+  '93532','93534','93535','93536','93543','93544','93550','93551','93552','93553',
+  '93563','93591'
+]);
+
+function _parseLine(raw){
+  const out=[]; let cur='',q=false;
+  for(let i=0;i<raw.length;i++){
+    const c=raw[i];
+    if(c==='"'){q=!q;continue;}
+    if(c===','&&!q){out.push(cur);cur='';continue;}
+    cur+=c;
+  }
+  out.push(cur); return out;
+}
+function _parseCSV(text){
+  const lines=text.trim().split('\n');
+  const hdrs=_parseLine(lines[0]).map(h=>h.trim());
+  return lines.slice(1).filter(Boolean).map(l=>{
+    const vals=_parseLine(l),obj={};
+    hdrs.forEach((h,i)=>{obj[h]=(vals[i]??'').trim();});
+    return obj;
+  });
+}
+
+fetch('./ca_zip_scores.csv')
+  .then(r=>r.text())
+  .then(text=>{
+    const rows      = _parseCSV(text);
+    const validRows = rows.filter(r=>r.sas_score!=='');
+    const laRows    = validRows.filter(r=>LA_COUNTY_ZIPS.has(r.zcta));
+    const nonLaRows = validRows.filter(r=>!LA_COUNTY_ZIPS.has(r.zcta));
+    const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+    set('status-la-count',    laRows.length    + ' of 312 ZIP codes');
+    set('status-ca-count',    nonLaRows.length + ' ZIP codes');
+    set('status-total-count', validRows.length + ' total ZIP codes scored');
+  })
+  .catch(()=>{});
 </script>
 </body>
 </html>
