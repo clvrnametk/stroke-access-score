@@ -1,9 +1,25 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/map", "destination": "/map.html" },
-    { "source": "/about",     "destination": "/about.html" },
-    { "source": "/changelog", "destination": "/changelog.html" }
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/map",
+      "destination": "/map.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/changelog",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/data",
+      "destination": "/data.html"
+    }
   ],
   "cleanUrls": true
 }

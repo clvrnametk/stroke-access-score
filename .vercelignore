@@ -1,0 +1,26 @@
+# Raw data pipeline files — not needed for the web app
+hospitals_1.json
+hospitals_2.json
+hospitals_3.json
+hospitals_4.json
+
+# Python scripts
+*.py
+
+# Large shapefiles used only during data build
+data/tl_*.zip
+data/*.zip
+
+# SQLite database (data is already exported to CSV/JSON)
+data/sas.db
+
+# Pipeline outputs not used by the web app
+data/sensitivity_changes.csv
+data/ca_disparity_summary.csv
+data/ca_zip_boundaries.geojson
+
+# Secrets
+.env
+
+# macOS
+.DS_Store
