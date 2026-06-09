@@ -325,7 +325,7 @@ async function loadData() {
         sas_score:          score,
         access_level:       score === null ? '' : score < 40 ? 'Limited' : score < 70 ? 'Moderate' : 'Strong',
         best_facility_name: r.best_facility_name || '—',
-        best_facility_type: r.best_facility_type || '—',
+        best_facility_type: normCert(r.best_facility_type) || r.best_facility_type || '—',
         drive_minutes:      mins,
         pct_hispanic:       num(r.pct_hispanic, 0),
         pct_black_nh:       num(r.pct_black_nh, 0),
@@ -387,10 +387,20 @@ function accessCell(a) {
   const cls = a === 'Limited' ? 'access-limited' : a === 'Moderate' ? 'access-moderate' : 'access-strong';
   return `<td><span class="access-pill ${cls}">${a}</span></td>`;
 }
-function certCell(t) {
+// Infer badge from raw CMS hospital type when proper cert label is unavailable
+function normCert(raw) {
   const known = ['CSC','TSC','PSC','ASRH'];
-  if (!known.includes(t)) return `<td><span style="font-size:.78rem;color:#888">${t||'—'}</span></td>`;
-  return `<td><span class="cert cert-${t}">${t}</span></td>`;
+  if (known.includes(raw)) return raw;
+  const t = (raw || '').toLowerCase();
+  if (t.includes('critical access')) return 'ASRH';
+  if (t.includes('children') || t.includes('psychiatric')) return null;
+  if (t.includes('acute')) return 'PSC';
+  return null;
+}
+function certCell(raw) {
+  const cert = normCert(raw);
+  if (!cert) return `<td><span style="font-size:.78rem;color:#999">—</span></td>`;
+  return `<td><span class="cert cert-${cert}">${cert}</span></td>`;
 }
 function flagsCell(r) {
   const f = [];
