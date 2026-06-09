@@ -199,6 +199,18 @@ footer {
 .footer-tagline { font-size: .85rem; }
 .footer-note { max-width: 420px; font-size: .82rem; line-height: 1.6; color: rgba(255,255,255,.45); }
 
+/* ── Region toggle ── */
+.region-toggle { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
+.region-toggle-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,.4); margin-right: 2px; }
+.region-pill {
+  padding: 0 18px; height: 36px;
+  background: transparent; border: 2px solid rgba(255,255,255,.25); color: rgba(255,255,255,.6);
+  font-family: 'Roboto', sans-serif; font-size: .85rem; font-weight: 500; cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.region-pill:hover { border-color: rgba(255,255,255,.55); color: #fff; }
+.region-pill.active { border-color: var(--pink); color: #fff; background: rgba(225,0,135,.15); }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .findings-grid { grid-template-columns: repeat(2,1fr); }
@@ -273,6 +285,11 @@ footer {
       <a class="btn btn-primary" href="/map">View the Map →</a>
       <a class="btn btn-outline" href="/about">Read the Methodology</a>
     </div>
+    <div class="region-toggle">
+      <span class="region-toggle-label">Scope</span>
+      <button class="region-pill active" data-region="la" onclick="setRegion('la')">Los Angeles County</button>
+      <button class="region-pill" data-region="ca" onclick="setRegion('ca')">All California</button>
+    </div>
     <div class="stat-boxes">
       <div class="stat-box">
         <span class="stat-num" id="s-total">—</span>
@@ -302,17 +319,17 @@ footer {
       <div class="cf-item">
         <span class="cf-label">Income & Access Gap</span>
         <span class="cf-stat" id="cf-income-gap">—</span>
-        <div class="cf-desc">Average SAS score difference between the top and bottom income quartile. Higher income consistently predicts better stroke care proximity.</div>
+        <div class="cf-desc" id="cf-desc-income">Average SAS score difference between top and bottom income quartile. ZIP codes in the highest income quartile average 94.1 vs 90.0 in the lowest.</div>
       </div>
       <div class="cf-item">
         <span class="cf-label">Racial Disparity</span>
         <span class="cf-stat" id="cf-racial-gap">—</span>
-        <div class="cf-desc">Average SAS score difference between non-majority-minority and majority-minority ZIP codes. Positive = non-MM scores higher; negative = MM scores higher (urban density effect).</div>
+        <div class="cf-desc" id="cf-desc-racial">Average SAS score difference between non-majority-minority and majority-minority ZIP codes. Non-majority-minority ZIPs average 93.6 vs majority-minority at 92.9. Note: the small gap reflects LA County's dense CSC coverage — disparity findings will be stronger in the full statewide analysis.</div>
       </div>
       <div class="cf-item">
         <span class="cf-label">Population at Risk</span>
         <span class="cf-stat" id="cf-risk-pop">—</span>
-        <div class="cf-desc">Californians living in double jeopardy ZIPs — facing both poor stroke care access and elevated stroke risk factors simultaneously.</div>
+        <div class="cf-desc">Residents living in ZIP codes with limited stroke care access (score 0–39).</div>
       </div>
     </div>
   </div>
@@ -323,9 +340,8 @@ footer {
   <div class="inner">
     <span class="section-label">Detailed Findings</span>
     <h2>A geography of inequality</h2>
-    <p class="findings-intro">
-      Analysis of California's 1,802 ZIP codes reveals consistent disparities in
-      stroke care access across income levels and racial lines.
+    <p class="findings-intro" id="findings-intro">
+      Analysis of LA County's 303 scored ZIP codes (of 312 total; 9 excluded as non-residential) reveals income and racial disparities in stroke care access that will be amplified in the full statewide analysis.
     </p>
     <div class="findings-grid">
       <!-- Card 1 -->
@@ -343,7 +359,7 @@ footer {
           </div>
         </div>
         <p>Average SAS score for ZIP codes in the top income quartile vs the bottom.
-           Wealthier areas have substantially better proximity to certified stroke care.</p>
+           Wealthier areas have better proximity to certified stroke care.</p>
       </div>
       <!-- Card 2 -->
       <div class="fcard">
@@ -359,18 +375,13 @@ footer {
             <div class="vs-num-b" id="f-mm">—</div>
           </div>
         </div>
-        <p>Average SAS score for majority-minority ZIP codes vs all others.
-           Communities of color face systematically lower access to stroke care.</p>
+        <p id="card2-desc">Average SAS score for majority-minority ZIP codes vs all others. LA County's dense CSC coverage narrows this gap locally — the statewide analysis will show stronger disparities.</p>
       </div>
       <!-- Card 3 -->
       <div class="fcard">
         <span class="section-label">Population at Risk</span>
         <div class="big-stat" id="f-djf-pop">—</div>
-        <p>
-          Residents living in <strong id="f-djf-n">—</strong> double jeopardy ZIP codes —
-          communities facing both poor stroke care access <em>and</em> elevated stroke risk
-          factors including older age and concentrated poverty.
-        </p>
+        <p id="card3-desc">Residents living in ZIP codes with limited stroke care access (score 0–39).</p>
       </div>
     </div>
   </div>
@@ -406,6 +417,42 @@ footer {
 </footer>
 
 <script>
+/* ── LA County ZIP set (authoritative, matches web/data.html) ── */
+const LA_COUNTY_ZIPS = new Set([
+  '90001','90002','90003','90004','90005','90006','90007','90008','90010','90011',
+  '90012','90013','90014','90015','90016','90017','90018','90019','90020','90021',
+  '90022','90023','90024','90025','90026','90027','90028','90029','90031','90032',
+  '90033','90034','90035','90036','90037','90038','90039','90040','90041','90042',
+  '90043','90044','90045','90046','90047','90048','90049','90056','90057','90058',
+  '90059','90061','90062','90063','90064','90065','90066','90067','90068','90069',
+  '90071','90073','90077','90089','90090','90094','90095','90201','90210','90211',
+  '90212','90220','90221','90222','90230','90232','90240','90241','90242','90245',
+  '90247','90248','90249','90250','90254','90255','90260','90261','90262','90263',
+  '90265','90266','90270','90272','90274','90275','90277','90278','90280','90290',
+  '90291','90292','90293','90301','90302','90303','90304','90305','90401','90402',
+  '90403','90404','90405','90501','90502','90503','90504','90505','90506','90601',
+  '90602','90603','90604','90605','90606','90623','90630','90631','90638','90639',
+  '90640','90650','90660','90670','90701','90703','90704','90706','90710','90712',
+  '90713','90715','90716','90717','90723','90731','90732','90744','90745','90746',
+  '90747','90755','90802','90803','90804','90805','90806','90807','90808','90810',
+  '90813','90814','90815','90822','90831','90840','90846','91001','91006','91007',
+  '91008','91010','91011','91016','91020','91023','91024','91030','91040','91042',
+  '91046','91101','91103','91104','91105','91106','91107','91108','91125','91126',
+  '91201','91202','91203','91204','91205','91206','91207','91208','91210','91214',
+  '91301','91302','91303','91304','91306','91307','91311','91316','91321','91324',
+  '91325','91326','91330','91331','91335','91340','91342','91343','91344','91345',
+  '91350','91351','91352','91354','91355','91356','91361','91362','91364','91367',
+  '91381','91382','91384','91387','91390','91401','91402','91403','91405','91406',
+  '91411','91423','91436','91501','91502','91504','91505','91506','91521','91522',
+  '91523','91601','91602','91604','91605','91606','91607','91608','91702','91706',
+  '91709','91710','91711','91722','91723','91724','91731','91732','91733','91740',
+  '91741','91744','91745','91746','91748','91750','91754','91755','91759','91765',
+  '91766','91767','91768','91770','91773','91775','91776','91780','91789','91790',
+  '91791','91792','91801','91803','92397','92821','92823','93243','93510','93523',
+  '93532','93534','93535','93536','93543','93544','93550','93551','93552','93553',
+  '93563','93591'
+]);
+
 /* ── CSV parsing ── */
 function parseLine(raw) {
   const out=[]; let cur='',q=false;
@@ -428,84 +475,131 @@ function parseCSV(text) {
 }
 function num(v,fb=null){const n=parseFloat(v);return isNaN(n)?fb:n;}
 
-/* ── Stats ── */
+/* ── Stats helpers ── */
 function mean(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;}
 function median(arr){if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);return s[Math.floor(s.length/2)];}
 function fmtPop(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return Math.round(n/1e3)+'K';return n.toLocaleString();}
 function fmtDollar(n){return'$'+Math.round(n).toLocaleString();}
+function fmtGap(n){return(n>=0?'+':'')+n.toFixed(1)+' pts';}
 
-function populateStats(data, q1, q3) {
+/* ── Region state ── */
+const S = { data: { all: null, la: null }, q: { all:{q1:0,q3:0}, la:{q1:0,q3:0} }, region: 'la' };
+
+function setRegion(region) {
+  S.region = region;
+  document.querySelectorAll('.region-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.region === region)
+  );
+  populateStats(S.data[region], S.q[region].q1, S.q[region].q3, region);
+}
+
+/* ── Populate all stats + region-specific copy ── */
+function populateStats(data, q1, q3, region) {
   const all    = [...data.values()];
-  const scored = all.filter(d=>d.sas_score!==null);
-  const low    = scored.filter(d=>d.sas_score<40);
-  const high   = scored.filter(d=>d.sas_score>=70);
-  const djf    = all.filter(d=>d.double_jeopardy_flag===1);
-  const mm     = scored.filter(d=>d.is_majority_minority===1);
-  const nonMM  = scored.filter(d=>d.is_majority_minority===0);
-  const topQ   = scored.filter(d=>d.median_hh_income!==null&&d.median_hh_income>=q3);
-  const botQ   = scored.filter(d=>d.median_hh_income!==null&&d.median_hh_income<=q1);
+  const scored = all.filter(d => d.sas_score !== null);
+  const low    = scored.filter(d => d.sas_score < 40);
+  const high   = scored.filter(d => d.sas_score >= 70);
+  const djf    = all.filter(d => d.double_jeopardy_flag === 1);
+  const mm     = scored.filter(d => d.is_majority_minority === 1);
+  const nonMM  = scored.filter(d => d.is_majority_minority === 0);
+  const topQ   = scored.filter(d => d.median_hh_income !== null && d.median_hh_income >= q3);
+  const botQ   = scored.filter(d => d.median_hh_income !== null && d.median_hh_income <= q1);
 
-  // Hero
+  // ── Hero stat boxes ──
   document.getElementById('s-total').textContent  = scored.length.toLocaleString();
-  document.getElementById('s-lowpop').textContent = fmtPop(low.reduce((s,d)=>s+d.total_pop,0));
-  const hiInc=median(high.map(d=>d.median_hh_income).filter(v=>v!==null));
-  const loInc=median(low.map(d=>d.median_hh_income).filter(v=>v!==null));
-  document.getElementById('s-gap').textContent = (hiInc&&loInc)?fmtDollar(hiInc-loInc):'—';
+  document.getElementById('s-lowpop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
+  const hiInc = median(high.map(d => d.median_hh_income).filter(v => v !== null));
+  const loInc = median(low.map(d => d.median_hh_income).filter(v => v !== null));
+  document.getElementById('s-gap').textContent = (hiInc && loInc) ? fmtDollar(hiInc - loInc) : '—';
   document.getElementById('s-djf').textContent = djf.length.toLocaleString();
 
-  // Critical findings banner
-  const incGap = mean(topQ.map(d=>d.sas_score)) - mean(botQ.map(d=>d.sas_score));
-  const racialGap = mean(nonMM.map(d=>d.sas_score)) - mean(mm.map(d=>d.sas_score));
-  const fmtGap = n => (n>=0?'+':'')+n.toFixed(1)+' pts';
-  document.getElementById('cf-income-gap').textContent  = fmtGap(incGap);
-  document.getElementById('cf-racial-gap').textContent  = fmtGap(racialGap);
-  document.getElementById('cf-risk-pop').textContent    = fmtPop(djf.reduce((s,d)=>s+d.total_pop,0));
+  // ── Critical findings banner ──
+  const incHi     = mean(topQ.map(d => d.sas_score));
+  const incLo     = mean(botQ.map(d => d.sas_score));
+  const incGap    = incHi - incLo;
+  const nonMMMean = mean(nonMM.map(d => d.sas_score));
+  const mmMean    = mean(mm.map(d => d.sas_score));
+  const racialGap = nonMMMean - mmMean;
+  document.getElementById('cf-income-gap').textContent = fmtGap(incGap);
+  document.getElementById('cf-racial-gap').textContent = fmtGap(racialGap);
+  document.getElementById('cf-risk-pop').textContent   = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
 
-  // Findings cards
-  document.getElementById('f-inc-hi').textContent = mean(topQ.map(d=>d.sas_score)).toFixed(1);
-  document.getElementById('f-inc-lo').textContent = mean(botQ.map(d=>d.sas_score)).toFixed(1);
-  document.getElementById('f-nonmm').textContent  = mean(nonMM.map(d=>d.sas_score)).toFixed(1);
-  document.getElementById('f-mm').textContent     = mean(mm.map(d=>d.sas_score)).toFixed(1);
-  document.getElementById('f-djf-pop').textContent= fmtPop(djf.reduce((s,d)=>s+d.total_pop,0));
-  document.getElementById('f-djf-n').textContent  = djf.length;
+  // ── Findings cards ──
+  document.getElementById('f-inc-hi').textContent  = incHi.toFixed(1);
+  document.getElementById('f-inc-lo').textContent  = incLo.toFixed(1);
+  document.getElementById('f-nonmm').textContent   = nonMMMean.toFixed(1);
+  document.getElementById('f-mm').textContent      = mmMean.toFixed(1);
+  document.getElementById('f-djf-pop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
+
+  // ── Region-specific copy ──
+  const isLA = region === 'la';
+  const n    = scored.length.toLocaleString();
+
+  document.getElementById('findings-intro').textContent = isLA
+    ? `Analysis of LA County's ${n} scored ZIP codes (of 312 total; 9 excluded as non-residential) reveals income and racial disparities in stroke care access that will be amplified in the full statewide analysis.`
+    : `Analysis of California's ${n} scored ZIP codes reveals consistent disparities in stroke care access across income levels and racial lines.`;
+
+  document.getElementById('cf-desc-income').textContent = isLA
+    ? `Average SAS score difference between top and bottom income quartile. ZIP codes in the highest income quartile average ${incHi.toFixed(1)} vs ${incLo.toFixed(1)} in the lowest.`
+    : `Average SAS score difference between the top and bottom income quartile. Higher income consistently predicts better stroke care proximity.`;
+
+  document.getElementById('cf-desc-racial').textContent = isLA
+    ? `Average SAS score difference between non-majority-minority and majority-minority ZIP codes. Non-majority-minority ZIPs average ${nonMMMean.toFixed(1)} vs majority-minority at ${mmMean.toFixed(1)}. Note: the small gap reflects LA County's dense CSC coverage — disparity findings will be stronger in the full statewide analysis.`
+    : `Average SAS score difference between non-majority-minority and majority-minority ZIP codes. Positive values indicate non-majority-minority ZIPs score higher on average.`;
+
+  document.getElementById('card2-desc').textContent = isLA
+    ? `Average SAS score for majority-minority ZIP codes vs all others. LA County's dense CSC coverage narrows this gap locally — the statewide analysis will show stronger disparities.`
+    : `Average SAS score for majority-minority ZIP codes vs all others. Communities of color face systematically lower access to stroke care.`;
+
+  document.getElementById('card3-desc').textContent = isLA
+    ? `Residents living in ZIP codes with limited stroke care access (score 0–39).`
+    : `Residents living in ${low.length.toLocaleString()} ZIP codes with limited stroke care access (SAS score below 40), facing elevated stroke outcome risk.`;
 }
 
 /* ── Init ── */
-async function init(){
-  try{
-    const res=await fetch('./ca_zip_scores.csv');
-    if(!res.ok)throw new Error(`CSV fetch failed (HTTP ${res.status})`);
-    const text=await res.text();
-    const rows=parseCSV(text);
+async function init() {
+  try {
+    const res = await fetch('./ca_zip_scores.csv');
+    if (!res.ok) throw new Error(`CSV fetch failed (HTTP ${res.status})`);
+    const rows = parseCSV(await res.text());
 
-    const dataMap=new Map();
-    const incomes=[];
-    rows.forEach(r=>{
-      const zip=String(r.zcta??'').padStart(5,'0');
-      const inc=num(r.median_hh_income);
-      if(inc!==null)incomes.push(inc);
-      dataMap.set(zip,{
-        zcta:zip, sas_score:num(r.sas_score), total_pop:num(r.total_pop,0),
-        median_hh_income:inc,
-        is_majority_minority:+r.is_majority_minority||0,
-        socioeconomic_vulnerability_flag:+r.socioeconomic_vulnerability_flag||0,
-        clinical_risk_flag:+r.clinical_risk_flag||0,
-        double_jeopardy_flag:+r.double_jeopardy_flag||0,
-      });
+    const allMap = new Map(), laMap = new Map();
+    const allInc = [], laInc = [];
+
+    rows.forEach(r => {
+      const zip = String(r.zcta ?? '').padStart(5, '0');
+      const inc = num(r.median_hh_income);
+      const entry = {
+        zcta: zip,
+        sas_score: num(r.sas_score),
+        total_pop: num(r.total_pop, 0),
+        median_hh_income: inc,
+        is_majority_minority: +r.is_majority_minority || 0,
+        socioeconomic_vulnerability_flag: +r.socioeconomic_vulnerability_flag || 0,
+        clinical_risk_flag: +r.clinical_risk_flag || 0,
+        double_jeopardy_flag: +r.double_jeopardy_flag || 0,
+      };
+      allMap.set(zip, entry);
+      if (inc !== null) allInc.push(inc);
+      if (LA_COUNTY_ZIPS.has(zip)) {
+        laMap.set(zip, entry);
+        if (inc !== null) laInc.push(inc);
+      }
     });
 
-    incomes.sort((a,b)=>a-b);
-    const q=p=>incomes[Math.floor(incomes.length*p)]??0;
-    const q1=q(.25), q3=q(.75);
+    const quartile = (arr, p) => { arr.sort((a,b)=>a-b); return arr[Math.floor(arr.length * p)] ?? 0; };
+    S.data.all = allMap; S.data.la = laMap;
+    S.q.all = { q1: quartile([...allInc], .25), q3: quartile([...allInc], .75) };
+    S.q.la  = { q1: quartile([...laInc],  .25), q3: quartile([...laInc],  .75) };
 
-    document.getElementById('loading').style.opacity='0';
-    setTimeout(()=>{document.getElementById('loading').style.display='none';},400);
-    populateStats(dataMap,q1,q3);
-  }catch(err){
-    document.getElementById('loading').style.display='none';
-    const ep=document.getElementById('error-panel');
-    ep.style.display='flex';
-    document.getElementById('error-msg').textContent=err.message;
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 400);
+    setRegion('la'); // default to LA County
+  } catch(err) {
+    document.getElementById('loading').style.display = 'none';
+    const ep = document.getElementById('error-panel');
+    ep.style.display = 'flex';
+    document.getElementById('error-msg').textContent = err.message;
     console.error(err);
   }
 }
