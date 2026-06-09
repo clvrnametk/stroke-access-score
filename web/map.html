@@ -2142,10 +2142,24 @@
         try {
           await document.fonts.ready;
           const slideDiv = document.getElementById('slide-canvas');
-          const canvas   = await html2canvas(slideDiv, {
+
+          // Temporarily strip the viewport-fit transform so html2canvas captures
+          // the full 960×540 element — not the scaled-down mobile preview version.
+          const savedTransform       = preview.style.transform;
+          const savedTransformOrigin = preview.style.transformOrigin;
+          preview.style.transform       = 'none';
+          preview.style.transformOrigin = 'top left';
+          void preview.offsetWidth;  // force reflow before capture
+
+          const canvas = await html2canvas(slideDiv, {
             scale: 2, useCORS: true, backgroundColor: '#ffffff',
             width: 960, height: 540, logging: false
           });
+
+          // Restore the visual scaling for the on-screen preview
+          preview.style.transform       = savedTransform;
+          preview.style.transformOrigin = savedTransformOrigin;
+
           slideBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         } catch(e) {
           console.error('Slide pre-generation failed:', e);
@@ -2202,9 +2216,13 @@
       btn.textContent = 'Generating…'; btn.disabled = true;
       try {
         await document.fonts.ready;
+        const previewEl = document.getElementById('slide-preview');
+        const savedT = previewEl?.style.transform;
+        if (previewEl) { previewEl.style.transform = 'none'; void previewEl.offsetWidth; }
         const canvas = await html2canvas(slideDiv, {
           scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 960, height: 540, logging: false
         });
+        if (previewEl) previewEl.style.transform = savedT;
         slideBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         _triggerDownload();
       } catch(e) {
