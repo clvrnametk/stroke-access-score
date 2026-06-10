@@ -1544,6 +1544,7 @@
       S.hospitalLayer = L.layerGroup();
       S.hospitals.forEach((h, fid) => {
         if (!h.lat || !h.lon) return;
+        if (h.stroke_level !== 'CSC' && h.stroke_level !== 'PSC') return;
         const pinColor = levelColor(h.stroke_level);
         const m = L.circleMarker([h.lat, h.lon], {
           radius: h.stroke_level === 'CSC' ? 9 : 7,  // CSC pins slightly larger
