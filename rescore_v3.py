@@ -23,7 +23,7 @@ def calculate_sas(hospitals):
     Returns (best_score, best_name, best_level, best_drive_minutes).
     Scoring parameters come from scoring_config.LEVELS.
     """
-    best_score, best_name, best_level, best_drive = 0, None, None, None
+    best_score, best_name, best_level, best_drive, best_fid = 0, None, None, None, None
     for h in hospitals:
         level = h.get('stroke_level', '')
         if level not in cfg.LEVELS:
@@ -35,7 +35,8 @@ def calculate_sas(hospitals):
             best_name  = h.get('facility_name', '')
             best_level = level
             best_drive = mins
-    return best_score, best_name, best_level, best_drive
+            best_fid   = h.get('facility_id', '')
+    return best_score, best_name, best_level, best_drive, best_fid
 
 
 def tier(s):
@@ -90,11 +91,15 @@ with open(CSV_PATH) as f:
 
 print(f"  {len(existing):,} rows, {len(fieldnames)} columns")
 
-# Ensure sensitivity column exists in fieldnames (add after sas_score if missing)
+# Ensure new columns exist in fieldnames
 if 'sas_score_sensitivity' not in fieldnames:
     idx = fieldnames.index('sas_score') + 1
     fieldnames.insert(idx, 'sas_score_sensitivity')
     print("  Added column: sas_score_sensitivity")
+if 'best_facility_drive_mins' not in fieldnames:
+    idx = fieldnames.index('best_facility_drive_miles')
+    fieldnames.insert(idx, 'best_facility_drive_mins')
+    print("  Added column: best_facility_drive_mins")
 
 # ── Helper: safe float ────────────────────────────────────────────────────────
 def sf(v, default=0.0):
@@ -119,7 +124,7 @@ for row in existing:
     before_tiers[tier(old_score)] += 1
 
     hospitals = zip_hospitals.get(zcta, [])
-    new_score, best_name, best_level, best_drive = calculate_sas(hospitals)
+    new_score, best_name, best_level, best_drive, best_fid = calculate_sas(hospitals)
     new_score = new_score if new_score > 0 else None
 
     # Recalculate flags using config thresholds
@@ -170,8 +175,10 @@ for row in existing:
     updated = dict(row)
     updated['sas_score']                        = '' if new_score is None else new_score
     updated['sas_score_sensitivity']            = '' if sens_score_out is None else sens_score_out
+    updated['best_facility_id']                 = best_fid   or row.get('best_facility_id', '')
     updated['best_facility_name']               = best_name  or row.get('best_facility_name', '')
     updated['best_facility_type']               = best_level or row.get('best_facility_type', '')
+    updated['best_facility_drive_mins']         = '' if best_drive is None else round(best_drive, 1)
     updated['socioeconomic_vulnerability_flag'] = sev
     updated['clinical_risk_flag']               = crf
     updated['double_jeopardy_flag']             = djf
