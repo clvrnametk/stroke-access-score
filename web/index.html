@@ -118,6 +118,15 @@ nav {
   font-size: clamp(1.92rem, 5.2vw, 4rem); line-height: 1.1;
   margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto;
 }
+.headline-mobile { display: none; }
+@media (max-width: 768px) {
+  .hero h1 { font-size: 5rem; }
+  .headline-desktop { display: none; }
+  .headline-mobile { display: inline; }
+}
+@media (max-width: 430px) {
+  .hero h1 { font-size: 4.2rem; }
+}
 .impact-inline {
   color: var(--pink); font-size: 1.25em; display: inline;
 }
@@ -379,7 +388,7 @@ footer {
     </div>
 
     <!-- Combined headline: inline number + copy as one typographic unit -->
-    <h1><span class="impact-inline" id="impact-number">—</span> <span id="hero-loc">Californians</span> are already <span style="color:var(--pink)">more than 30 min</span> from certified stroke care</h1>
+    <h1><span class="impact-inline" id="impact-number">—</span> <span id="hero-loc">Californians</span><span class="headline-desktop"> are already <span style="color:var(--pink)">more than 30 min</span> from certified stroke care</span><span class="headline-mobile">. Too far from stroke care.</span></h1>
 
     <!-- Subhead -->
     <p class="subhead">Every 15-minute delay reduces the chance of a good outcome by 20%.</p>
