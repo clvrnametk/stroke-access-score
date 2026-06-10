@@ -1,2 +1,6 @@
 web/*_backup_*.json
 web/*_backup_*.csv
+
+# Pipeline backup files — never commit these
+data/ca_zip_scores_backup_*.csv
+data/ca_hospitals_backup_*.json
