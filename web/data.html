@@ -249,11 +249,10 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
         <th data-col="total_pop">Population</th>
         <th data-col="sas_score">SAS Score</th>
         <th data-col="access_level">Access Level</th>
-        <th data-col="best_facility_name">Nearest Stroke Center</th>
-        <th data-col="best_facility_type">Cert.</th>
-        <th data-col="best_facility_drive_mins">Drive Time</th>
-        <th data-col="best_facility_drive_miles">Distance</th>
-        <th data-col="closest_cert_type">Closest Type</th>
+        <th data-col="nearest_facility_name">Nearest Stroke Center</th>
+        <th data-col="nearest_facility_type">Cert.</th>
+        <th data-col="nearest_facility_drive_mins">Drive Time</th>
+        <th data-col="nearest_facility_drive_miles">Distance</th>
         <th data-col="nearest_csc_name">Nearest CSC</th>
         <th data-col="nearest_csc_drive_mins">CSC Drive Time</th>
         <th data-col="nearest_csc_drive_miles">CSC Distance</th>
@@ -380,22 +379,40 @@ async function loadData() {
         sas_score:              score,
         sas_score_sensitivity:  num(r.sas_score_sensitivity),
         access_level:           computeAccessLevel(num(r.sas_score)),
-        best_facility_name:     r.best_facility_name || '—',
-        best_facility_type:     normCert(r.best_facility_type) || r.best_facility_type || '—',
-        best_facility_drive_mins:  num(r.best_facility_drive_mins),
-        best_facility_drive_miles: num(r.best_facility_drive_miles),
         nearest_csc_name:        r.nearest_csc_name  || '',
         nearest_csc_drive_mins:  num(r.nearest_csc_drive_mins),
         nearest_csc_drive_miles: num(r.nearest_csc_drive_miles),
         nearest_psc_name:        r.nearest_psc_name  || '',
         nearest_psc_drive_mins:  num(r.nearest_psc_drive_mins),
         nearest_psc_drive_miles: num(r.nearest_psc_drive_miles),
-        closest_cert_type: (() => {
+        // Nearest certified facility = geographically closest of CSC or PSC
+        nearest_facility_type: (() => {
           const p = num(r.nearest_psc_drive_mins), c = num(r.nearest_csc_drive_mins);
           if (p === null && c === null) return '';
           if (p === null) return 'CSC';
           if (c === null) return 'PSC';
           return p <= c ? 'PSC' : 'CSC';
+        })(),
+        nearest_facility_name: (() => {
+          const p = num(r.nearest_psc_drive_mins), c = num(r.nearest_csc_drive_mins);
+          if (p === null && c === null) return '—';
+          if (p === null) return r.nearest_csc_name || '—';
+          if (c === null) return r.nearest_psc_name || '—';
+          return p <= c ? (r.nearest_psc_name || '—') : (r.nearest_csc_name || '—');
+        })(),
+        nearest_facility_drive_mins: (() => {
+          const p = num(r.nearest_psc_drive_mins), c = num(r.nearest_csc_drive_mins);
+          if (p === null && c === null) return null;
+          if (p === null) return c;
+          if (c === null) return p;
+          return p <= c ? p : c;
+        })(),
+        nearest_facility_drive_miles: (() => {
+          const p = num(r.nearest_psc_drive_mins), c = num(r.nearest_csc_drive_mins);
+          if (p === null && c === null) return null;
+          if (p === null) return num(r.nearest_csc_drive_miles);
+          if (c === null) return num(r.nearest_psc_drive_miles);
+          return p <= c ? num(r.nearest_psc_drive_miles) : num(r.nearest_csc_drive_miles);
         })(),
         pct_hispanic:           num(r.pct_hispanic, 0),
         pct_black_nh:           num(r.pct_black_nh, 0),
@@ -526,11 +543,10 @@ function renderTable() {
     <td style="text-align:right">${pop(r.total_pop)}</td>
     ${scoreCell(r.sas_score, r)}
     ${accessCell(r.access_level)}
-    <td style="white-space:nowrap" title="${r.best_facility_name}">${r.best_facility_name}</td>
-    ${certCell(r.best_facility_type)}
-    <td style="white-space:nowrap">${mins(r.best_facility_drive_mins)}</td>
-    <td style="white-space:nowrap">${miles(r.best_facility_drive_miles)}</td>
-    ${certCell(r.closest_cert_type || '—')}
+    <td style="white-space:nowrap" title="${r.nearest_facility_name}">${r.nearest_facility_name}</td>
+    ${certCell(r.nearest_facility_type || '—')}
+    <td style="white-space:nowrap">${mins(r.nearest_facility_drive_mins)}</td>
+    <td style="white-space:nowrap">${miles(r.nearest_facility_drive_miles)}</td>
     <td style="white-space:nowrap;color:${r.nearest_csc_name ? 'inherit' : '#bbb'}">${r.nearest_csc_name || '—'}</td>
     <td style="white-space:nowrap">${mins(r.nearest_csc_drive_mins)}</td>
     <td style="white-space:nowrap">${miles(r.nearest_csc_drive_miles)}</td>
@@ -573,11 +589,10 @@ function exportRows() {
     'Population':               r.total_pop ?? '',
     'SAS Score':                r.sas_score ?? '',
     'Access Level':             r.access_level,
-    'Nearest Stroke Center':    r.best_facility_name,
-    'Cert. Level':              r.best_facility_type,
-    'Drive Time (min)':         r.best_facility_drive_mins  != null ? r.best_facility_drive_mins.toFixed(1)  : '',
-    'Distance (mi)':            r.best_facility_drive_miles != null ? r.best_facility_drive_miles.toFixed(1) : '',
-    'Closest Cert Type':        r.closest_cert_type || '',
+    'Nearest Stroke Center':    r.nearest_facility_name || '',
+    'Cert.':                    r.nearest_facility_type || '',
+    'Drive Time (min)':         r.nearest_facility_drive_mins  != null ? r.nearest_facility_drive_mins.toFixed(1)  : '',
+    'Distance (mi)':            r.nearest_facility_drive_miles != null ? r.nearest_facility_drive_miles.toFixed(1) : '',
     'Nearest CSC':              r.nearest_csc_name || '',
     'CSC Drive Time (min)':     r.nearest_csc_drive_mins  != null ? r.nearest_csc_drive_mins.toFixed(1)  : '',
     'CSC Distance (mi)':        r.nearest_csc_drive_miles != null ? r.nearest_csc_drive_miles.toFixed(1) : '',
