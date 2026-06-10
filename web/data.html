@@ -19,6 +19,7 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
+  --page-width: 1200px;
   --navy: #0f0f3c; --pink: #e10087; --bg: #f5f4f8;
   --text: #3c3c5a; --divider: #e0e0ec;
 }
@@ -43,20 +44,20 @@ nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 5
 
 /* Hero */
 .hero { background: var(--navy); color: #fff; padding: 20px 24px 16px; }
-.hero-inner { max-width: 1200px; margin: 0 auto; }
+.hero-inner { max-width: var(--page-width); margin: 0 auto; }
 .section-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--pink); margin-bottom: 10px; }
 .hero h1 { font-size: clamp(1.3rem,2.5vw,1.8rem); line-height: 1.15; margin-bottom: 4px; }
 .hero p { font-size: .88rem; color: rgba(255,255,255,.65); max-width: 640px; }
 
 /* Stats row */
 .stats-strip { background: #0a0a2e; border-top: 1px solid rgba(255,255,255,.1); padding: 10px 24px; }
-.stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.stats-inner { max-width: var(--page-width); margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
 .sbox { text-align: center; padding: 8px 6px; border: 1px solid rgba(255,255,255,.12); }
 .sbox .n { font-family: 'Roboto Slab', serif; font-size: clamp(1.1rem,2vw,1.5rem); color: var(--pink); line-height: 1; display: block; margin-bottom: 3px; }
 .sbox .l { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.45); line-height: 1.4; }
 
 /* Controls */
-.controls { max-width: 1200px; margin: 0 auto; padding: 10px 24px 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.controls { max-width: var(--page-width); margin: 0 auto; padding: 10px 24px 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .search-box { flex: 1; min-width: 200px; position: relative; }
 .search-box input { width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1.5px solid var(--divider); background: #fff; font-family: 'Roboto', sans-serif; font-size: .88rem; color: var(--text); outline: none; }
 .search-box input:focus { border-color: var(--navy); }
@@ -72,7 +73,7 @@ nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 5
 /* Table lives in a fixed-height scroll container so the sticky header
    is relative to the container (top:0), not the viewport (top:56px).
    This prevents the header from overlapping the controls bar. */
-.table-outer { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
+.table-outer { max-width: var(--page-width); margin: 0 auto; padding: 0 24px 48px; }
 .table-wrap {
   max-height: calc(100vh - 180px); /* tighter offset — hero and stats are now compact */
   min-height: 400px;
@@ -134,7 +135,7 @@ td.zip { font-family: 'Roboto Slab', serif; font-weight: 700; font-size: .9rem; 
 #loading-msg { text-align: center; padding: 48px 24px; color: #888; font-size: .95rem; }
 
 /* Footer note */
-.data-note { max-width: 1200px; margin: 0 auto; padding: 0 24px 32px; font-size: .82rem; color: #888; }
+.data-note { max-width: var(--page-width); margin: 0 auto; padding: 0 24px 32px; font-size: .82rem; color: #888; }
 
 /* Footer */
 footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }

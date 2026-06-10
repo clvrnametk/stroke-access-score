@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Roboto:wght@400;500&display=swap">
 <style>
 :root {
+  --page-width: 1200px;
   --navy:    #0f0f3c;
   --pink:    #e10087;
   --bg:      #f5f4f8;
@@ -182,7 +183,7 @@ section#hero { margin-top: -56px; }
   background: var(--navy); border-top: 1px solid rgba(255,255,255,.1);
   padding: 72px 24px 80px;
 }
-.critical-banner .inner { max-width: 1160px; margin: 0 auto; }
+.critical-banner .inner { max-width: var(--page-width); margin: 0 auto; }
 .critical-banner h2 { color: #fff; font-size: clamp(1.3rem,2.5vw,1.8rem); margin-bottom: 28px; }
 .critical-findings-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
 .cf-item {
@@ -195,7 +196,7 @@ section#hero { margin-top: -56px; }
 
 /* ── Findings section ── */
 .findings-section { padding: 72px 24px 80px; background: var(--bg); }
-.findings-section .inner { max-width: 1160px; margin: 0 auto; }
+.findings-section .inner { max-width: var(--page-width); margin: 0 auto; }
 .findings-section h2 { font-size: clamp(1.5rem,3vw,2.1rem); color: var(--navy); margin-bottom: 8px; }
 .findings-intro { color: var(--text); max-width: 640px; margin-bottom: 40px; font-size: .95rem; }
 .findings-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
@@ -228,7 +229,7 @@ section#hero { margin-top: -56px; }
 }
 .map-cta-section .inner {
   position: relative; z-index: 1;
-  max-width: 1160px; margin: 0 auto;
+  max-width: var(--page-width); margin: 0 auto;
 }
 .map-cta-section h2 {
   font-size: clamp(1.8rem,3.5vw,2.8rem); color: #fff;
