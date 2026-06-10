@@ -956,6 +956,22 @@
     }
     .dc-export-btn:hover  { background: #e10087; }
     .dc-export-btn:active { background: #b8006b; }
+    .dc-share-btn {
+      flex-shrink: 0; width: 29px; height: 29px; margin-top: 2px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid var(--divider);
+      border-radius: var(--r-sm) !important; cursor: pointer;
+      color: var(--navy); transition: background .15s, border-color .15s;
+    }
+    .dc-share-btn:hover { background: var(--bg); border-color: var(--navy); }
+    /* Toast notification */
+    .sas-toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: var(--navy); color: #fff; padding: 8px 18px;
+      border-radius: var(--r-sm) !important; font-size: .82rem;
+      z-index: 9999; pointer-events: none; opacity: 1;
+      transition: opacity .3s; white-space: nowrap;
+    }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -1706,6 +1722,9 @@
             <span class="dc-zip-sub">ZIP code ${zip}</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <button type="button" class="dc-share-btn" onclick="shareZip('${zip}')" aria-label="Share" title="Share this ZIP">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            </button>
             <button type="button" class="dc-export-btn" onclick="openSlideExport('${zip}')">Export</button>
             <button type="button" class="dc-close" onclick="returnToViewport()" aria-label="Close" title="Close">×</button>
           </div>
@@ -2180,6 +2199,41 @@
     });
 
     // ─ Nav ─
+    // ── ZIP share (detail card share button) ──────────────────────────────────
+    const SHARE_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+
+    function showToast(msg) {
+      document.querySelectorAll('.sas-toast').forEach(t => t.remove());
+      const t = document.createElement('div');
+      t.className = 'sas-toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 1800);
+    }
+
+    async function shareZip(zip) {
+      const url  = window.location.origin + '/map?zip=' + zip;
+      const d    = S.data.get(zip);
+      const sc   = activeScore(d);
+      const lbl  = sc !== null ? scoreLabel(sc) : 'Unscored';
+      const text = `ZIP ${zip} — Stroke Access Score: ${sc !== null ? sc.toFixed(0) : '—'} (${lbl})`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Stroke Access Score', text, url });
+          return;
+        } catch(e) {
+          if (e.name === 'AbortError') return;
+        }
+      }
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied to clipboard');
+      } catch(e) {
+        showToast('Copy failed — ' + url);
+      }
+    }
+
     function toggleNav() {
       const d = document.getElementById('nav-drawer');
       const b = document.getElementById('hamburger');
@@ -2558,6 +2612,16 @@
         switchView('community');
         document.documentElement.style.overflow = 'hidden'; // lock scroll on initial load
 
+        // Deep-link: ?zip=XXXXX — auto-select ZIP if provided in URL
+        const _zipParam = new URLSearchParams(window.location.search).get('zip');
+        if (_zipParam) {
+          const _zip = _zipParam.replace(/\D/g, '').padStart(5, '0').slice(0, 5);
+          if (_zip.length === 5 && S.data.has(_zip)) {
+            // Small delay so the map has fully rendered before selecting
+            setTimeout(() => selectZip(_zip), 120);
+          }
+        }
+
       } catch (err) {
         document.getElementById('loading').style.display = 'none';
         const ep = document.getElementById('error-panel');
@@ -2588,8 +2652,8 @@
     <!-- Action buttons -->
     <div style="display:flex;gap:12px;align-self:center;flex-shrink:0;flex-wrap:wrap;justify-content:center">
       <!-- Share (shown on mobile/devices with Web Share API) -->
-      <button id="share-btn" class="modal-action-btn" onclick="shareSlide()"
-              style="display:none">Share</button>
+      <button id="share-btn" class="modal-action-btn" onclick="shareSlide()" aria-label="Share"
+              style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
       <!-- Download PNG (always available) -->
       <button id="dl-btn" class="modal-action-btn" onclick="downloadSlide()">Download PNG</button>
       <button class="modal-close-btn" onclick="closeSlideExport()">Close</button>

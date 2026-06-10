@@ -199,6 +199,48 @@ footer {
 .footer-tagline { font-size: .85rem; }
 .footer-note { max-width: 420px; font-size: .82rem; line-height: 1.6; color: rgba(255,255,255,.45); }
 
+/* ── Hero impact statement ── */
+.hero-impact { margin-bottom: 12px; }
+.impact-number {
+  display: block; font-family: 'Roboto Slab', serif;
+  font-size: clamp(3.5rem, 10vw, 6.5rem); color: var(--pink); line-height: 1;
+  margin-bottom: 10px;
+}
+.impact-label {
+  display: block; font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  color: rgba(255,255,255,.88); max-width: 560px; margin: 0 auto; line-height: 1.45;
+}
+
+/* ── ZIP search (primary CTA) ── */
+.zip-search { display: flex; flex-direction: column; align-items: center; margin: 28px 0 44px; gap: 10px; }
+.zip-search-inner {
+  display: flex; width: min(500px, 100%); gap: 0;
+  background: rgba(255,255,255,.14); border-radius: 999px !important; padding: 5px;
+}
+.zip-search-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-size: 1.1rem; padding: 10px 20px;
+  font-family: 'Roboto', sans-serif; min-width: 0;
+}
+.zip-search-input::placeholder { color: rgba(255,255,255,.42); }
+.zip-search-btn {
+  padding: 10px 26px; background: var(--pink); color: #fff; border: none;
+  border-radius: 999px !important; font-family: 'Roboto', sans-serif;
+  font-weight: 500; font-size: .95rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: background .15s;
+}
+.zip-search-btn:hover { background: #c2006e; }
+.zip-search-alt { font-size: .85rem; color: rgba(255,255,255,.5); text-decoration: none; }
+.zip-search-alt:hover { color: rgba(255,255,255,.8); text-decoration: underline; }
+.zip-search-divider {
+  border: none; border-top: 1px solid rgba(255,255,255,.1);
+  width: min(600px, 100%); margin: 0 auto 40px;
+}
+@media (max-width: 480px) {
+  .zip-search-inner { flex-direction: column; border-radius: 16px !important; padding: 8px; }
+  .zip-search-btn { border-radius: 12px !important; width: 100%; padding: 12px; }
+}
+
 /* ── Model toggle ── */
 .model-toggle {
   display: flex; align-items: center;
@@ -312,6 +354,26 @@ footer {
 <section id="hero">
   <div class="hero">
     <span class="section-label" style="color:rgba(225,0,135,.8)">California Stroke Access</span>
+
+    <!-- Impact statement -->
+    <div class="hero-impact">
+      <span class="impact-number" id="impact-number">8.1M</span>
+      <span class="impact-label">Californians live more than 30 minutes from<br>the nearest certified stroke center</span>
+    </div>
+
+    <!-- ZIP search — primary CTA -->
+    <div class="zip-search">
+      <div class="zip-search-inner">
+        <input type="text" id="zip-input" class="zip-search-input"
+               placeholder="Enter your ZIP code"
+               maxlength="5" inputmode="numeric" autocomplete="postal-code">
+        <button class="zip-search-btn" onclick="goToZip()">Check your ZIP</button>
+      </div>
+      <a href="/map" class="zip-search-alt">or explore the full California map →</a>
+    </div>
+
+    <hr class="zip-search-divider">
+
     <h1>Where You Live Determines&nbsp;Your&nbsp;Care</h1>
     <p class="subhead">
       The Stroke Access Score measures every California ZIP code on its proximity
@@ -630,6 +692,7 @@ async function init() {
         socioeconomic_vulnerability_flag: +r.socioeconomic_vulnerability_flag || 0,
         clinical_risk_flag: +r.clinical_risk_flag || 0,
         double_jeopardy_flag: +r.double_jeopardy_flag || 0,
+        nearest_csc_drive_mins: num(r.nearest_csc_drive_mins),
       };
       allMap.set(zip, entry);
       if (inc !== null) allInc.push(inc);
@@ -647,6 +710,20 @@ async function init() {
     document.getElementById('loading').style.opacity = '0';
     setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 400);
 
+    // Compute and display the impact number using All CA data
+    let impactPop = 0;
+    for (const d of allMap.values()) {
+      if (d.nearest_csc_drive_mins !== null && d.nearest_csc_drive_mins > 30) {
+        impactPop += d.total_pop;
+      }
+    }
+    if (impactPop > 0) {
+      const formatted = impactPop >= 1e6
+        ? (impactPop / 1e6).toFixed(1) + 'M'
+        : Math.round(impactPop / 1e3) + 'K';
+      document.getElementById('impact-number').textContent = formatted;
+    }
+
     // Init model toggle after config loads
     fetch('./scoring_config.json').then(r=>r.ok?r.json():null).then(cfg=>{
       if(cfg){ window.SASConfig=cfg; initModelToggle(); }
@@ -659,6 +736,20 @@ async function init() {
     ep.style.display = 'flex';
     document.getElementById('error-msg').textContent = err.message;
     console.error(err);
+  }
+}
+
+/* ── ZIP search ── */
+function goToZip() {
+  const raw = (document.getElementById('zip-input').value || '').replace(/\D/g, '');
+  const zip = raw.padStart(5, '0').slice(0, 5);
+  if (/^\d{5}$/.test(zip)) {
+    window.location.href = '/map?zip=' + zip;
+  } else {
+    const inp = document.getElementById('zip-input');
+    inp.focus();
+    inp.style.outline = '2px solid var(--pink)';
+    setTimeout(() => { inp.style.outline = ''; }, 1400);
   }
 }
 
@@ -722,6 +813,8 @@ document.addEventListener('DOMContentLoaded', init);
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('cy');
   if (el) el.textContent = new Date().getFullYear();
+  const inp = document.getElementById('zip-input');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') goToZip(); });
 });
 </script>
 </body>
