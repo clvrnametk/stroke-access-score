@@ -134,8 +134,19 @@ section#hero { margin-top: -56px; }
 @media (max-width: 768px) {
   .hero {
     background-image: url('./home-hero-bg-5-mobile.png');
-    background-position: bottom center;
+    background-position: top center;
+    min-height: 100svh;
   }
+  /* Gradient dissolves image into solid navy before stat boxes */
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 60%, #0f0f3c 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Stat boxes sit on solid navy — no image behind them */
+  .stat-boxes { background: #0f0f3c; }
   .hero h1 { font-size: 2.8rem; }
   .impact-inline { font-size: 3.5rem; }
   .hero .subhead { font-size: .85rem; }
