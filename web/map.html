@@ -1625,7 +1625,7 @@
       if (!lat || !lon) return;
       if (areaNameCache.has(zip)) { applyAreaName(zip, areaNameCache.get(zip)); return; }
       try {
-        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`;
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=13`;
         const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
         const data = await res.json();
         const a    = data.address || {};
