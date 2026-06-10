@@ -403,19 +403,19 @@ footer {
     <h2>Critical Findings</h2>
     <div class="critical-findings-row">
       <div class="cf-item">
-        <span class="cf-label">Wealth Predicts Access</span>
+        <span class="cf-label" id="cf-label-income"></span>
         <span class="cf-stat" id="cf-income-gap">—</span>
-        <div class="cf-desc" id="cf-desc-income">ZIP codes in the highest income quartile average higher stroke care access scores than the lowest. Wealth is a consistent predictor of proximity to certified care.</div>
+        <div class="cf-desc" id="cf-desc-income"></div>
       </div>
       <div class="cf-item">
-        <span class="cf-label">Race Predicts Access</span>
+        <span class="cf-label" id="cf-label-racial"></span>
         <span class="cf-stat" id="cf-racial-gap">—</span>
-        <div class="cf-desc" id="cf-desc-racial">Majority-minority ZIP codes score lower on stroke care access on average. The gap is larger statewide — LA County's dense hospital coverage narrows it locally.</div>
+        <div class="cf-desc" id="cf-desc-racial"></div>
       </div>
       <div class="cf-item">
-        <span class="cf-label">Residents at Risk</span>
+        <span class="cf-label" id="cf-label-risk"></span>
         <span class="cf-stat" id="cf-risk-pop">—</span>
-        <div class="cf-desc">People living in ZIP codes where the nearest certified stroke center is more than 30 minutes away — beyond the critical window for stroke treatment.</div>
+        <div class="cf-desc" id="cf-desc-risk"></div>
       </div>
     </div>
   </div>
@@ -424,10 +424,8 @@ footer {
 <!-- Findings Cards -->
 <section id="findings" class="findings-section">
   <div class="inner">
-    <h2>A geography of inequality</h2>
-    <p class="findings-intro" id="findings-intro">
-      Analysis of LA County's 303 scored ZIP codes (of 312 total; 9 excluded as non-residential) reveals income and racial disparities in stroke care access that will be amplified in the full statewide analysis.
-    </p>
+    <h2 id="findings-headline"></h2>
+    <p class="findings-intro" id="findings-intro"></p>
     <div class="findings-grid">
       <!-- Card 1 -->
       <div class="fcard">
@@ -443,8 +441,7 @@ footer {
             <div class="vs-num-b" id="f-inc-lo">—</div>
           </div>
         </div>
-        <p>Average SAS score for ZIP codes in the top income quartile vs the bottom.
-           Wealthier areas have better proximity to certified stroke care.</p>
+        <p id="card1-desc"></p>
       </div>
       <!-- Card 2 -->
       <div class="fcard">
@@ -460,13 +457,13 @@ footer {
             <div class="vs-num-b" id="f-mm">—</div>
           </div>
         </div>
-        <p id="card2-desc">Average SAS score for majority-minority ZIP codes vs all others. LA County's dense CSC coverage narrows this gap locally — the statewide analysis will show stronger disparities.</p>
+        <p id="card2-desc"></p>
       </div>
       <!-- Card 3 -->
       <div class="fcard">
         <span class="section-label">Population at Risk</span>
         <div class="big-stat" id="f-djf-pop">—</div>
-        <p id="card3-desc">Residents living in ZIP codes with limited stroke care access (score 0–39).</p>
+        <p id="card3-desc"></p>
       </div>
     </div>
   </div>
@@ -567,6 +564,31 @@ function fmtPop(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e4)return(n/1e3
 function fmtDollar(n){return'$'+Math.round(n).toLocaleString();}
 function fmtGap(n){return(n>=0?'+':'')+n.toFixed(1)+' pts';}
 
+/* ── Copy strings ── single source of truth for all section labels and descriptions ── */
+const COPY = {
+  cf: {
+    income: {
+      label: 'Wealth Predicts Access',
+      desc: (hi, lo) => `In California, your income predicts your proximity to certified stroke care. The wealthiest ZIP codes average ${hi} vs ${lo} for the poorest — a gap that widens significantly outside LA County.`
+    },
+    racial: {
+      label: 'Race Predicts Access',
+      desc: 'Majority-minority communities score lower on stroke care access on average. LA County\'s dense hospital network narrows the gap locally — the statewide picture is starker.'
+    },
+    risk: {
+      label: 'Residents at Risk',
+      desc: 'People living beyond the 30-minute treatment window in ZIP codes where certified stroke care is effectively out of reach.'
+    }
+  },
+  findings: {
+    headline: 'The gap is real. And it\'s not random.',
+    intro: 'Income and race consistently predict stroke care access across California. The patterns are clearest statewide — but even in LA County, one of the most hospital-dense regions in the country, the disparities are measurable.',
+    income: { desc: 'Wealthier ZIP codes have meaningfully better proximity to certified stroke centers. The gap between the highest and lowest income quartiles is consistent across regions and grows larger outside urban centers.' },
+    racial: { desc: 'Majority-minority ZIP codes score lower on stroke care access on average. LA County\'s dense CSC network compresses the gap locally — the statewide analysis will show stronger disparities.' },
+    risk:   { desc: 'Residents living in ZIP codes where the nearest certified stroke center is more than 30 minutes away — beyond the critical window where treatment outcomes decline sharply.' }
+  }
+};
+
 /* ── Region state ── */
 const S = { data: { ca: null, la: null }, q: { ca:{q1:0,q3:0}, la:{q1:0,q3:0} }, region: 'la' };
 
@@ -603,59 +625,55 @@ function populateStats(data, q1, q3, region) {
   const hiInc    = median(scoreTop.map(d => d.median_hh_income));
   const loInc    = median(scoreBot.map(d => d.median_hh_income));
 
-  // ── Hero stat boxes ──
-  document.getElementById('s-total').textContent  = scored.length.toLocaleString();
-  document.getElementById('s-lowpop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
-  document.getElementById('s-gap').textContent    = (hiInc !== null && loInc !== null) ? fmtDollar(hiInc - loInc) : '—';
-  document.getElementById('s-djf').textContent    = djf.length.toLocaleString();
-
-  // ── Critical findings banner ──
+  // ── Computed values ──
   const incHi     = mean(topQ.map(d => gs(d)));
   const incLo     = mean(botQ.map(d => gs(d)));
   const incGap    = incHi - incLo;
   const nonMMMean = mean(nonMM.map(d => gs(d)));
   const mmMean    = mean(mm.map(d => gs(d)));
   const racialGap = nonMMMean - mmMean;
+  const over30Pop = all.reduce((sum, d) =>
+    (d.nearest_csc_drive_mins !== null && d.nearest_csc_drive_mins > 30)
+      ? sum + d.total_pop : sum, 0);
+  const isLA = region === 'la';
+
+  // ── Hero stat boxes ──
+  document.getElementById('s-total').textContent  = scored.length.toLocaleString();
+  document.getElementById('s-lowpop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
+  document.getElementById('s-gap').textContent    = (hiInc !== null && loInc !== null) ? fmtDollar(hiInc - loInc) : '—';
+  document.getElementById('s-djf').textContent    = djf.length.toLocaleString();
+
+  // ── Critical Findings — stats ──
   document.getElementById('cf-income-gap').textContent = fmtGap(incGap);
   document.getElementById('cf-racial-gap').textContent = fmtGap(racialGap);
-  document.getElementById('cf-risk-pop').textContent   = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
+  document.getElementById('cf-risk-pop').textContent   = fmtPop(over30Pop);
 
-  // ── Findings cards ──
+  // ── Critical Findings — labels and descriptions (from COPY) ──
+  document.getElementById('cf-label-income').textContent = COPY.cf.income.label;
+  document.getElementById('cf-label-racial').textContent = COPY.cf.racial.label;
+  document.getElementById('cf-label-risk').textContent   = COPY.cf.risk.label;
+  document.getElementById('cf-desc-income').textContent  = COPY.cf.income.desc(incHi.toFixed(1), incLo.toFixed(1));
+  document.getElementById('cf-desc-racial').textContent  = COPY.cf.racial.desc;
+  document.getElementById('cf-desc-risk').textContent    = COPY.cf.risk.desc;
+
+  // ── Detailed Findings — headline and intro (from COPY) ──
+  document.getElementById('findings-headline').textContent = COPY.findings.headline;
+  document.getElementById('findings-intro').textContent    = COPY.findings.intro;
+
+  // ── Detailed Findings — stats ──
   document.getElementById('f-inc-hi').textContent  = incHi.toFixed ? incHi.toFixed(1) : '—';
   document.getElementById('f-inc-lo').textContent  = incLo.toFixed ? incLo.toFixed(1) : '—';
   document.getElementById('f-nonmm').textContent   = nonMMMean.toFixed(1);
   document.getElementById('f-mm').textContent      = mmMean.toFixed(1);
-  document.getElementById('f-djf-pop').textContent = fmtPop(low.reduce((s,d) => s + d.total_pop, 0));
+  document.getElementById('f-djf-pop').textContent = djf.length.toLocaleString();
 
-  // ── Region-specific copy ──
-  const isLA = region === 'la';
-  const n    = scored.length.toLocaleString();
+  // ── Detailed Findings — descriptions (from COPY) ──
+  document.getElementById('card1-desc').textContent = COPY.findings.income.desc;
+  document.getElementById('card2-desc').textContent = COPY.findings.racial.desc;
+  document.getElementById('card3-desc').textContent = COPY.findings.risk.desc;
 
-  document.getElementById('findings-intro').textContent = isLA
-    ? `Analysis of LA County's ${n} scored ZIP codes (of 312 total; 9 excluded as non-residential) reveals income and racial disparities in stroke care access that will be amplified in the full statewide analysis.`
-    : `Analysis of California's ${n} scored ZIP codes reveals consistent disparities in stroke care access across income levels and racial lines.`;
-
-  document.getElementById('cf-desc-income').textContent = isLA
-    ? `Average SAS score difference between top and bottom income quartile. ZIP codes in the highest income quartile average ${incHi.toFixed(1)} vs ${incLo.toFixed(1)} in the lowest.`
-    : `Average SAS score difference between the top and bottom income quartile. Higher income consistently predicts better stroke care proximity.`;
-
-  document.getElementById('cf-desc-racial').textContent = isLA
-    ? `Average SAS score difference between non-majority-minority and majority-minority ZIP codes. Non-majority-minority ZIPs average ${nonMMMean.toFixed(1)} vs majority-minority at ${mmMean.toFixed(1)}. Note: the small gap reflects LA County's dense CSC coverage — disparity findings will be stronger in the full statewide analysis.`
-    : `Average SAS score difference between non-majority-minority and majority-minority ZIP codes. Positive values indicate non-majority-minority ZIPs score higher on average.`;
-
-  document.getElementById('card2-desc').textContent = isLA
-    ? `Average SAS score for majority-minority ZIP codes vs all others. LA County's dense CSC coverage narrows this gap locally — the statewide analysis will show stronger disparities.`
-    : `Average SAS score for majority-minority ZIP codes vs all others. Communities of color face systematically lower access to stroke care.`;
-
-  document.getElementById('card3-desc').textContent = isLA
-    ? `Residents living in ZIP codes with limited stroke care access (score 0–39).`
-    : `Residents living in ${low.length.toLocaleString()} ZIP codes with limited stroke care access (SAS score below 40), facing elevated stroke outcome risk.`;
-
-  // ── Dynamic headline: number + location word update with region toggle ──
-  const over30Pop = all.reduce((sum, d) =>
-    (d.nearest_csc_drive_mins !== null && d.nearest_csc_drive_mins > 30)
-      ? sum + d.total_pop : sum, 0);
-  const loc = isLA ? 'Angelenos' : 'Californians';
+  // ── Hero headline: dynamic number + location word ──
+  const loc   = isLA ? 'Angelenos' : 'Californians';
   const numEl = document.getElementById('impact-number');
   const locEl = document.getElementById('hero-loc');
   if (numEl) numEl.textContent = fmtPop(over30Pop);
