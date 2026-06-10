@@ -109,11 +109,13 @@ nav {
 .btn-outline:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,.08); }
 
 /* ── Hero ── */
+section#hero { margin-top: -56px; }
+#main-nav { background: transparent; transition: background-color .15s linear; }
 .hero {
   position: relative;
   background: var(--navy) url('./home-hero-bg-5.png') center / cover no-repeat;
   color: #fff;
-  padding: clamp(36px,5vw,64px) 24px clamp(48px,6vw,80px);
+  padding: calc(56px + clamp(36px,5vw,64px)) 24px clamp(48px,6vw,80px);
   text-align: center;
 }
 .hero::before {
@@ -856,6 +858,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (el) el.textContent = new Date().getFullYear();
   const inp = document.getElementById('zip-input');
   if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') goToZip(); });
+
+  // Transparent nav → solid navy as hero scrolls out
+  (function() {
+    const nav  = document.getElementById('main-nav');
+    const hero = document.getElementById('hero');
+    function syncNavBg() {
+      const heroH   = hero.offsetHeight;
+      const opacity = Math.min(window.scrollY / heroH, 1);
+      nav.style.backgroundColor = opacity >= 1
+        ? '#0f0f3c'
+        : `rgba(15,15,60,${opacity.toFixed(3)})`;
+    }
+    window.addEventListener('scroll', syncNavBg, { passive: true });
+    syncNavBg();
+  })();
 });
 </script>
 </body>
