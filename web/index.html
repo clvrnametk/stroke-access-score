@@ -871,8 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nav  = document.getElementById('main-nav');
     const hero = document.getElementById('hero');
     function syncNavBg() {
-      const heroH   = hero.offsetHeight;
-      const opacity = Math.min(window.scrollY / heroH, 1);
+      const opacity = Math.min(window.scrollY / 60, 1);
       nav.style.backgroundColor = opacity >= 1
         ? '#0f0f3c'
         : `rgba(15,15,60,${opacity.toFixed(3)})`;
