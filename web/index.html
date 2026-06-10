@@ -132,12 +132,19 @@ section#hero { margin-top: -56px; }
 }
 .headline-mobile { display: none; }
 @media (max-width: 768px) {
-  .hero h1 { font-size: 5rem; }
+  .hero {
+    background-image: url('./home-hero-bg-5-mobile.png');
+    background-position: bottom center;
+  }
+  .hero h1 { font-size: 2.8rem; }
+  .impact-inline { font-size: 3.5rem; }
+  .hero .subhead { font-size: .85rem; }
   .headline-desktop { display: none; }
   .headline-mobile { display: inline; }
 }
 @media (max-width: 430px) {
-  .hero h1 { font-size: 4.2rem; }
+  .hero h1 { font-size: 2.4rem; }
+  .impact-inline { font-size: 3rem; }
 }
 .impact-inline {
   color: var(--pink); font-size: 1.25em; display: inline;
