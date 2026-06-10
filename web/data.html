@@ -31,7 +31,7 @@ a { text-decoration: none; }
 /* Nav */
 nav { position: sticky; top: 0; z-index: 500; background: var(--navy); height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
 .nav-logo { font-family: 'Roboto Slab', serif; color: #fff; font-size: 1.05rem; white-space: nowrap; }
-.nav-links { display: flex; gap: 4px; }
+.nav-links { display: flex; gap: 4px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); }
 .nav-link { color: rgba(255,255,255,.75); padding: 6px 10px; font-size: .9rem; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; text-decoration: none; }
 .nav-link:hover, .nav-link.active { color: #fff; border-bottom-color: var(--pink); text-decoration: none; }
 .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; min-height: 44px; min-width: 44px; align-items: center; justify-content: center; }
