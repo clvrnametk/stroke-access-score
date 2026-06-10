@@ -69,12 +69,14 @@ for entry in cache.values():
     mins = entry.get('drive_minutes', 9999)
     if not zcta or not fid:
         continue
+    miles = entry.get('drive_miles')
     info = hosp_info.get(fid, {})
     zip_hospitals.setdefault(zcta, []).append({
         'facility_id':   fid,
         'facility_name': info.get('facility_name', fid),
         'stroke_level':  info.get('stroke_level', ''),
         'drive_minutes': mins,
+        'drive_miles':   miles,
     })
 
 print(f"  {len(cache):,} cache entries  →  {len(zip_hospitals):,} ZIPs with drive times")
@@ -100,6 +102,10 @@ if 'best_facility_drive_mins' not in fieldnames:
     idx = fieldnames.index('best_facility_drive_miles')
     fieldnames.insert(idx, 'best_facility_drive_mins')
     print("  Added column: best_facility_drive_mins")
+for col in ('nearest_psc_name', 'nearest_psc_drive_mins', 'nearest_psc_drive_miles'):
+    if col not in fieldnames:
+        fieldnames.append(col)
+        print(f"  Added column: {col}")
 
 # ── Helper: safe float ────────────────────────────────────────────────────────
 def sf(v, default=0.0):
@@ -172,6 +178,14 @@ for row in existing:
             sens_score = s
     sens_score_out = sens_score if sens_score > 0 else None
 
+    # ── Nearest PSC and CSC (additive — does not affect scoring) ─────────────────
+    def _nearest_by_level(hosp_list, level):
+        candidates = [h for h in hosp_list if h.get('stroke_level') == level]
+        return min(candidates, key=lambda h: h.get('drive_minutes', 9999), default=None) if candidates else None
+
+    near_psc = _nearest_by_level(hospitals, 'PSC')
+    near_csc = _nearest_by_level(hospitals, 'CSC')
+
     updated = dict(row)
     updated['sas_score']                        = '' if new_score is None else new_score
     updated['sas_score_sensitivity']            = '' if sens_score_out is None else sens_score_out
@@ -179,6 +193,12 @@ for row in existing:
     updated['best_facility_name']               = best_name  or row.get('best_facility_name', '')
     updated['best_facility_type']               = best_level or row.get('best_facility_type', '')
     updated['best_facility_drive_mins']         = '' if best_drive is None else round(best_drive, 1)
+    updated['nearest_psc_name']        = near_psc['facility_name'] if near_psc else ''
+    updated['nearest_psc_drive_mins']  = round(near_psc['drive_minutes'], 1) if near_psc else ''
+    updated['nearest_psc_drive_miles'] = round(near_psc['drive_miles'], 1) if near_psc and near_psc.get('drive_miles') else ''
+    updated['nearest_csc_name']        = near_csc['facility_name'] if near_csc else ''
+    updated['nearest_csc_drive_mins']  = round(near_csc['drive_minutes'], 1) if near_csc else ''
+    updated['nearest_csc_drive_miles'] = round(near_csc['drive_miles'], 1) if near_csc and near_csc.get('drive_miles') else ''
     updated['socioeconomic_vulnerability_flag'] = sev
     updated['clinical_risk_flag']               = crf
     updated['double_jeopardy_flag']             = djf

@@ -253,9 +253,13 @@ footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 24
         <th data-col="best_facility_type">Cert.</th>
         <th data-col="best_facility_drive_mins">Drive Time</th>
         <th data-col="best_facility_drive_miles">Distance</th>
+        <th data-col="closest_cert_type">Closest Type</th>
         <th data-col="nearest_csc_name">Nearest CSC</th>
         <th data-col="nearest_csc_drive_mins">CSC Drive Time</th>
         <th data-col="nearest_csc_drive_miles">CSC Distance</th>
+        <th data-col="nearest_psc_name">Nearest PSC</th>
+        <th data-col="nearest_psc_drive_mins">PSC Drive Time</th>
+        <th data-col="nearest_psc_drive_miles">PSC Distance</th>
         <th data-col="pct_hispanic">% Hispanic</th>
         <th data-col="pct_black_nh">% Black</th>
         <th data-col="pct_white_nh">% White</th>
@@ -380,9 +384,19 @@ async function loadData() {
         best_facility_type:     normCert(r.best_facility_type) || r.best_facility_type || '—',
         best_facility_drive_mins:  num(r.best_facility_drive_mins),
         best_facility_drive_miles: num(r.best_facility_drive_miles),
-        nearest_csc_name:       r.nearest_csc_name  || '',
-        nearest_csc_drive_mins: num(r.nearest_csc_drive_mins),
-        nearest_csc_drive_miles:num(r.nearest_csc_drive_miles),
+        nearest_csc_name:        r.nearest_csc_name  || '',
+        nearest_csc_drive_mins:  num(r.nearest_csc_drive_mins),
+        nearest_csc_drive_miles: num(r.nearest_csc_drive_miles),
+        nearest_psc_name:        r.nearest_psc_name  || '',
+        nearest_psc_drive_mins:  num(r.nearest_psc_drive_mins),
+        nearest_psc_drive_miles: num(r.nearest_psc_drive_miles),
+        closest_cert_type: (() => {
+          const p = num(r.nearest_psc_drive_mins), c = num(r.nearest_csc_drive_mins);
+          if (p === null && c === null) return '';
+          if (p === null) return 'CSC';
+          if (c === null) return 'PSC';
+          return p <= c ? 'PSC' : 'CSC';
+        })(),
         pct_hispanic:           num(r.pct_hispanic, 0),
         pct_black_nh:           num(r.pct_black_nh, 0),
         pct_white_nh:           num(r.pct_white_nh, 0),
@@ -516,9 +530,13 @@ function renderTable() {
     ${certCell(r.best_facility_type)}
     <td style="white-space:nowrap">${mins(r.best_facility_drive_mins)}</td>
     <td style="white-space:nowrap">${miles(r.best_facility_drive_miles)}</td>
+    ${certCell(r.closest_cert_type || '—')}
     <td style="white-space:nowrap;color:${r.nearest_csc_name ? 'inherit' : '#bbb'}">${r.nearest_csc_name || '—'}</td>
     <td style="white-space:nowrap">${mins(r.nearest_csc_drive_mins)}</td>
     <td style="white-space:nowrap">${miles(r.nearest_csc_drive_miles)}</td>
+    <td style="white-space:nowrap;color:${r.nearest_psc_name ? 'inherit' : '#bbb'}">${r.nearest_psc_name || '—'}</td>
+    <td style="white-space:nowrap">${mins(r.nearest_psc_drive_mins)}</td>
+    <td style="white-space:nowrap">${miles(r.nearest_psc_drive_miles)}</td>
     <td>${pct(r.pct_hispanic)}</td>
     <td>${pct(r.pct_black_nh)}</td>
     <td>${pct(r.pct_white_nh)}</td>
@@ -559,9 +577,13 @@ function exportRows() {
     'Cert. Level':              r.best_facility_type,
     'Drive Time (min)':         r.best_facility_drive_mins  != null ? r.best_facility_drive_mins.toFixed(1)  : '',
     'Distance (mi)':            r.best_facility_drive_miles != null ? r.best_facility_drive_miles.toFixed(1) : '',
+    'Closest Cert Type':        r.closest_cert_type || '',
     'Nearest CSC':              r.nearest_csc_name || '',
     'CSC Drive Time (min)':     r.nearest_csc_drive_mins  != null ? r.nearest_csc_drive_mins.toFixed(1)  : '',
     'CSC Distance (mi)':        r.nearest_csc_drive_miles != null ? r.nearest_csc_drive_miles.toFixed(1) : '',
+    'Nearest PSC':              r.nearest_psc_name || '',
+    'PSC Drive Time (min)':     r.nearest_psc_drive_mins  != null ? r.nearest_psc_drive_mins.toFixed(1)  : '',
+    'PSC Distance (mi)':        r.nearest_psc_drive_miles != null ? r.nearest_psc_drive_miles.toFixed(1) : '',
     '% Hispanic':               r.pct_hispanic  != null ? r.pct_hispanic.toFixed(1)  : '',
     '% Black':                  r.pct_black_nh  != null ? r.pct_black_nh.toFixed(1)  : '',
     '% White':                  r.pct_white_nh  != null ? r.pct_white_nh.toFixed(1)  : '',
