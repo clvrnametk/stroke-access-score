@@ -176,20 +176,40 @@ nav {
 
 /* ── Map CTA section ── */
 .map-cta-section {
-  padding: 56px 24px; background: #fff;
-  border-top: 1px solid var(--divider);
-  text-align: center;
+  position: relative;
+  padding: 120px 24px;
+  background-image: url('./map-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
-.map-cta-section h2 { font-size: clamp(1.4rem,3vw,2rem); color: var(--navy); margin-bottom: 12px; }
-.map-cta-section p { font-size: .95rem; color: var(--text); max-width: 560px; margin: 0 auto 28px; }
+.map-cta-section::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(15,15,60,.75) 0%, rgba(15,15,60,.75) 45%, rgba(15,15,60,.55) 100%);
+  pointer-events: none;
+}
+.map-cta-section .inner {
+  position: relative; z-index: 1;
+  max-width: 1160px; margin: 0 auto;
+}
+.map-cta-section h2 {
+  font-size: clamp(1.8rem,3.5vw,2.8rem); color: #fff;
+  margin-bottom: 16px; max-width: 520px;
+}
+.map-cta-section p {
+  font-size: clamp(.95rem,1.5vw,1.1rem); color: rgba(255,255,255,.8);
+  max-width: 480px; margin-bottom: 32px; line-height: 1.6;
+}
 .btn-map-cta {
   display: inline-flex; align-items: center; gap: 10px;
   padding: 0 28px; height: 52px;
-  background: var(--navy); color: #fff; border: 2px solid var(--navy);
+  background: #fff; color: var(--navy); border: 2px solid #fff;
   font-family: 'Roboto', sans-serif; font-size: 1rem; font-weight: 500;
   cursor: pointer; text-decoration: none;
 }
-.btn-map-cta:hover { background: #1a1a5c; border-color: #1a1a5c; }
+.btn-map-cta:hover { background: transparent; color: #fff; }
 .btn-map-cta .arrow { font-size: 1.1rem; }
 
 /* ── Divider ── */
@@ -471,11 +491,13 @@ footer {
 
 <!-- Map CTA -->
 <div class="map-cta-section">
-  <h2>Explore the Map</h2>
-  <p>Zoom into any ZIP code in California to see its score, demographics, and nearest stroke-certified hospitals.</p>
-  <a class="btn-map-cta" href="/map">
-    Open the Interactive Map <span class="arrow">→</span>
-  </a>
+  <div class="inner">
+    <h2>Explore the Map</h2>
+    <p>Zoom into any ZIP code in California to see its score, demographics, and nearest stroke-certified hospitals.</p>
+    <a class="btn-map-cta" href="/map">
+      Open the Interactive Map <span class="arrow">→</span>
+    </a>
+  </div>
 </div>
 
 <hr class="divider">
