@@ -374,13 +374,12 @@ footer {
 
     <hr class="zip-search-divider">
 
-    <h1>Where You Live Determines&nbsp;Your&nbsp;Care</h1>
+    <h1>Where you live determines whether you survive a&nbsp;stroke</h1>
     <p class="subhead">
-      The Stroke Access Score measures every California ZIP code on its proximity
-      to certified stroke care. The results reveal a stark geography of inequality.
+      <span id="subhead-pop">—</span> <span id="subhead-loc">Californians</span> are already more than 30 minutes from certified stroke care — the critical window for treatment. Every 15-minute delay reduces the chance of a good outcome by 20%.
     </p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="/map">View the Map →</a>
+      <a class="btn btn-primary" href="/map">How far are you?</a>
       <a class="btn btn-outline" href="/about">Read the Methodology</a>
     </div>
     <div class="region-toggle">
@@ -664,6 +663,16 @@ function populateStats(data, q1, q3, region) {
   document.getElementById('card3-desc').textContent = isLA
     ? `Residents living in ZIP codes with limited stroke care access (score 0–39).`
     : `Residents living in ${low.length.toLocaleString()} ZIP codes with limited stroke care access (SAS score below 40), facing elevated stroke outcome risk.`;
+
+  // ── Dynamic subhead: population > 30 min from CSC in the active region ──
+  const over30Pop = all.reduce((sum, d) =>
+    (d.nearest_csc_drive_mins !== null && d.nearest_csc_drive_mins > 30)
+      ? sum + d.total_pop : sum, 0);
+  const loc = isLA ? 'Angelenos' : 'Californians';
+  const popEl = document.getElementById('subhead-pop');
+  const locEl = document.getElementById('subhead-loc');
+  if (popEl) popEl.textContent = fmtPop(over30Pop);
+  if (locEl) locEl.textContent = loc;
 }
 
 /* ── Init ── */
